@@ -3,30 +3,30 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
-  <meta name="theme-color" content="#171a1b" />
+  <meta name="theme-color" content="#081018" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
-  <title>Итоги 2026 — HR Backroom Office</title>
-  <link rel="stylesheet" href="./styles.css?v=20260904-9" />
+  <title>Итоги 2026 — HR Immersive Office</title>
+  <link rel="stylesheet" href="./styles.css?v=20260904-10" />
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
-  <canvas id="renderCanvas" aria-label="Виртуальное пространство Итоги 2026"></canvas>
+  <canvas id="renderCanvas" aria-label="Иммерсивное пространство Итоги 2026"></canvas>
 
   <div id="boot" class="overlay boot">
     <div class="boot-card">
-      <div class="eyebrow">ЦК БОРУП · HR BACKROOM OFFICE</div>
+      <div class="eyebrow">ЦК БОРУП · IMMERSIVE HR OFFICE</div>
       <h1>ИТОГИ 2026</h1>
       <div class="terminal" id="bootLog"></div>
-      <button id="enterButton" class="primary" disabled>ВОЙТИ В HR HUB</button>
+      <button id="enterButton" class="primary" disabled>ВОЙТИ В ПРОСТРАНСТВО</button>
     </div>
   </div>
 
   <div id="hud" class="hud hidden">
     <div class="hud-top">
       <div class="zone-card">
-        <div class="eyebrow">HR BACKROOM OFFICE · v0.9 · MOBILE</div>
+        <div class="eyebrow">IMMERSIVE POV · v1.0</div>
         <div class="hud-title" id="zoneName">HR HUB · ИТОГИ 2026</div>
       </div>
       <div class="progress-card">
@@ -40,31 +40,29 @@
       <div class="guide-row" data-zone="recruitment"><span>01</span><b>ПРИЁМ</b><i>○</i></div>
       <div class="guide-row" data-zone="ai"><span>02</span><b>AI LAB</b><i>○</i></div>
       <div class="guide-row" data-zone="mentoring"><span>03</span><b>НАСТАВНИЧЕСТВО</b><i>○</i></div>
-      <div class="hub-guide-hint">Камера всегда следует за персонажем. На телефоне используйте экранный пульт.</div>
+      <div class="hub-guide-hint">Это режим от первого лица. На ПК — WASD + мышь. На телефоне — джойстик слева, обзор пальцем справа.</div>
     </div>
 
     <div id="roomPanel" class="room-panel hidden">
-      <div class="room-kicker">ПРОЕКТНАЯ КОМНАТА</div>
+      <div class="room-kicker">ПРОЕКТНОЕ ПРОСТРАНСТВО</div>
       <div class="room-title" id="roomPanelTitle"></div>
       <div class="room-subtitle" id="roomPanelSubtitle"></div>
       <div class="room-process" id="roomPanelProcess"></div>
       <div class="room-metrics" id="roomPanelMetrics"></div>
-      <div class="room-exit">Выход: зелёная дверь «HR HUB» или кнопка <b>HUB</b>.</div>
+      <div class="room-exit">Для возврата можно выйти обратно в коридор или нажать <b>HUB</b>.</div>
     </div>
 
-    <div id="interactionPrompt" class="interaction hidden">Enter — взаимодействовать</div>
-    <div class="controls">ПК: ↑ ↓ — идти · ← → — поворот · Enter / E — открыть / изучить · Q — HR HUB</div>
+    <div id="interactionPrompt" class="interaction hidden">E — взаимодействовать</div>
+    <div class="controls">WASD / стрелки — движение · мышь — смотреть · E / Enter — действие · Q — в HR HUB</div>
 
-    <div id="mobileControls" class="mobile-controls" aria-label="Управление персонажем с телефона">
-      <div class="mobile-pad" aria-label="Движение">
-        <button class="mobile-key up" data-key="ArrowUp" aria-label="Идти вперёд">▲</button>
-        <button class="mobile-key left" data-key="ArrowLeft" aria-label="Повернуть влево">◀</button>
-        <button class="mobile-key down" data-key="ArrowDown" aria-label="Идти назад">▼</button>
-        <button class="mobile-key right" data-key="ArrowRight" aria-label="Повернуть вправо">▶</button>
+    <div id="mobileControls" class="mobile-immersive hidden" aria-label="Мобильное управление">
+      <div id="joystickBase" class="joystick-base" aria-label="Джойстик движения">
+        <div id="joystickKnob" class="joystick-knob"></div>
       </div>
-      <div class="mobile-actions" aria-label="Действия">
-        <button class="mobile-action action" data-key="Enter" aria-label="Открыть или изучить">ДЕЙСТВИЕ</button>
-        <button class="mobile-action hub" data-key="KeyQ" aria-label="Вернуться в HR HUB">HUB</button>
+      <div class="mobile-look-hint">Проведите пальцем справа<br>чтобы смотреть вокруг</div>
+      <div class="mobile-immersive-actions">
+        <button id="mobileAction" class="mobile-round action" aria-label="Действие">ДЕЙСТВИЕ</button>
+        <button id="mobileHub" class="mobile-round hub" aria-label="Вернуться в HR HUB">HUB</button>
       </div>
     </div>
   </div>
@@ -72,9 +70,7 @@
   <div id="toast" class="toast hidden"></div>
   <div id="fade" class="fade"></div>
 
-  <script src="./src/data.js?v=20260904-9"></script>
-  <script src="./src/app-v07.js?v=20260904-9"></script>
-  <script src="./src/camera-follow-v08.js?v=20260904-9"></script>
-  <script src="./src/mobile-controls-v09.js?v=20260904-9"></script>
+  <script src="./src/data.js?v=20260904-10"></script>
+  <script src="./src/app-v10.js?v=20260904-10"></script>
 </body>
 </html>
