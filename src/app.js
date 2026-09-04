@@ -15,24 +15,29 @@
 
   const completed = new Set();
   const interactions = [];
-  const doorRegistry = {};
+  const doors = {};
   let currentInteraction = null;
   let toastTimer = null;
   let transitionBusy = false;
+  let currentZone = "hub";
 
   const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
   const scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color4(0.018, 0.024, 0.028, 1);
+  scene.clearColor = new BABYLON.Color4(0.055, 0.065, 0.07, 1);
   scene.gravity = new BABYLON.Vector3(0, -0.32, 0);
   scene.collisionsEnabled = true;
   scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-  scene.fogDensity = 0.0035;
-  scene.fogColor = new BABYLON.Color3(0.035, 0.045, 0.05);
+  scene.fogDensity = 0.0022;
+  scene.fogColor = new BABYLON.Color3(0.14, 0.15, 0.15);
+  scene.imageProcessingConfiguration.toneMappingEnabled = true;
+  scene.imageProcessingConfiguration.toneMappingType = BABYLON.ImageProcessingConfiguration.TONEMAPPING_ACES;
+  scene.imageProcessingConfiguration.exposure = 1.18;
+  scene.imageProcessingConfiguration.contrast = 1.08;
 
-  const camera = new BABYLON.UniversalCamera("player", new BABYLON.Vector3(0, 1.72, -6.8), scene);
-  camera.speed = 0.19;
+  const camera = new BABYLON.UniversalCamera("player", new BABYLON.Vector3(0, 1.72, -7.2), scene);
+  camera.speed = 0.2;
   camera.angularSensibility = 3600;
-  camera.fov = 0.9;
+  camera.fov = 0.88;
   camera.applyGravity = true;
   camera.checkCollisions = true;
   camera.ellipsoid = new BABYLON.Vector3(0.42, 0.86, 0.42);
@@ -43,35 +48,50 @@
   camera.attachControl(canvas, true);
 
   const hemi = new BABYLON.HemisphericLight("ambient", new BABYLON.Vector3(0, 1, 0), scene);
-  hemi.intensity = 0.72;
-  hemi.diffuse = new BABYLON.Color3(0.83, 0.9, 0.94);
-  hemi.groundColor = new BABYLON.Color3(0.08, 0.1, 0.11);
+  hemi.intensity = 0.62;
+  hemi.diffuse = new BABYLON.Color3(1, 0.97, 0.9);
+  hemi.groundColor = new BABYLON.Color3(0.16, 0.18, 0.19);
 
-  const makeMat = (name, hex, emissive = 0, alpha = 1) => {
-    const m = new BABYLON.StandardMaterial(name, scene);
-    m.diffuseColor = BABYLON.Color3.FromHexString(hex);
-    m.specularColor = new BABYLON.Color3(0.06, 0.07, 0.075);
+  const sun = new BABYLON.DirectionalLight("sun", new BABYLON.Vector3(-0.25, -1, 0.2), scene);
+  sun.position = new BABYLON.Vector3(10, 18, -12);
+  sun.intensity = 0.62;
+  sun.diffuse = new BABYLON.Color3(1, 0.9, 0.76);
+
+  const glow = new BABYLON.GlowLayer("glow", scene, { blurKernelSize: 24 });
+  glow.intensity = 0.45;
+
+  function pbr(name, hex, roughness = 0.6, metallic = 0, emissiveHex = null, alpha = 1) {
+    const m = new BABYLON.PBRMaterial(name, scene);
+    m.albedoColor = BABYLON.Color3.FromHexString(hex);
+    m.roughness = roughness;
+    m.metallic = metallic;
     m.alpha = alpha;
-    if (emissive) m.emissiveColor = BABYLON.Color3.FromHexString(hex).scale(emissive);
+    if (emissiveHex) m.emissiveColor = BABYLON.Color3.FromHexString(emissiveHex);
+    if (alpha < 1) {
+      m.transparencyMode = BABYLON.PBRMaterial.PBRMATERIAL_ALPHABLEND;
+      m.backFaceCulling = false;
+    }
     return m;
-  };
+  }
 
   const M = {
-    wall: makeMat("wall", "#2a3338"),
-    wall2: makeMat("wall2", "#20282d"),
-    floor: makeMat("floor", "#11171b"),
-    floorLine: makeMat("floorLine", "#48616d", 0.12),
-    ceiling: makeMat("ceiling", "#171d21"),
-    metal: makeMat("metal", "#697981"),
-    dark: makeMat("dark", "#0a0f12"),
-    white: makeMat("white", "#e4ebee", 0.08),
-    cyan: makeMat("cyan", "#35c8ff", 0.35),
-    teal: makeMat("teal", "#48dcb1", 0.32),
-    amber: makeMat("amber", "#efb35c", 0.28),
-    violet: makeMat("violet", "#a982ff", 0.30),
-    red: makeMat("red", "#9b4b5d", 0.18),
-    wood: makeMat("wood", "#665448"),
-    plant: makeMat("plant", "#4c765c")
+    wall: pbr("wall", "#ded8ce", 0.88, 0),
+    wallWarm: pbr("wallWarm", "#cbc2b5", 0.9, 0),
+    floor: pbr("floor", "#b7b0a4", 0.34, 0.05),
+    carpet: pbr("carpet", "#343738", 0.96, 0),
+    ceiling: pbr("ceiling", "#252829", 0.82, 0),
+    black: pbr("black", "#171a1b", 0.65, 0.05),
+    metal: pbr("metal", "#5f6465", 0.38, 0.7),
+    brushed: pbr("brushed", "#8d9292", 0.42, 0.58),
+    white: pbr("white", "#f4f0e8", 0.55, 0),
+    wood: pbr("wood", "#765945", 0.7, 0),
+    plant: pbr("plant", "#416f54", 0.86, 0),
+    glass: pbr("glass", "#9fc4cc", 0.12, 0.08, null, 0.28),
+    cyan: pbr("cyan", "#37bfe8", 0.45, 0.05, "#10485b"),
+    teal: pbr("teal", "#47c9a4", 0.45, 0.05, "#123e34"),
+    amber: pbr("amber", "#d7a45b", 0.48, 0.05, "#493315"),
+    violet: pbr("violet", "#8d75d1", 0.42, 0.05, "#2f2459"),
+    red: pbr("red", "#8f5360", 0.58, 0.02, "#32151d")
   };
 
   function box(name, size, position, material, collisions = true, parent = null) {
@@ -83,327 +103,382 @@
     return mesh;
   }
 
-  function cylinder(name, options, position, material) {
+  function cylinder(name, options, position, material, parent = null) {
     const mesh = BABYLON.MeshBuilder.CreateCylinder(name, options, scene);
     mesh.position.copyFrom(position);
     mesh.material = material;
+    if (parent) mesh.parent = parent;
     return mesh;
   }
 
-  function makeTextMaterial(name, title, subtitle, accent = "#7bdcff", bg = "rgba(8,13,16,.94)") {
-    const tex = new BABYLON.DynamicTexture(`${name}-tex`, { width: 1400, height: 420 }, scene, true);
+  function makeTextMaterial(name, title, subtitle, accent = "#8adcf4", bg = "rgba(25,28,29,.96)") {
+    const tex = new BABYLON.DynamicTexture(`${name}-tex`, { width: 1600, height: 460 }, scene, true);
     tex.hasAlpha = true;
     const ctx = tex.getContext();
-    ctx.clearRect(0, 0, 1400, 420);
+    ctx.clearRect(0, 0, 1600, 460);
     ctx.fillStyle = bg;
-    ctx.fillRect(0, 0, 1400, 420);
-    ctx.strokeStyle = accent;
-    ctx.lineWidth = 5;
-    ctx.strokeRect(4, 4, 1392, 412);
-    ctx.textAlign = "center";
+    ctx.fillRect(0, 0, 1600, 460);
+    ctx.fillStyle = accent;
+    ctx.fillRect(0, 0, 1600, 10);
+    ctx.textAlign = "left";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#f5f8f9";
+    ctx.fillStyle = "#f5f3ee";
     ctx.font = "700 86px Arial";
-    ctx.fillText(title, 700, subtitle ? 168 : 210, 1280);
+    ctx.fillText(title, 92, subtitle ? 172 : 230, 1410);
     if (subtitle) {
-      ctx.fillStyle = "#aabcc4";
-      ctx.font = "500 42px Arial";
-      ctx.fillText(subtitle, 700, 288, 1260);
+      ctx.fillStyle = "#b8c0c0";
+      ctx.font = "500 39px Arial";
+      ctx.fillText(subtitle, 94, 302, 1400);
     }
     tex.update();
+
     const mat = new BABYLON.StandardMaterial(`${name}-mat`, scene);
     mat.diffuseTexture = tex;
     mat.emissiveTexture = tex;
     mat.opacityTexture = tex;
-    mat.backFaceCulling = false;
+    mat.backFaceCulling = true;
+    mat.disableLighting = true;
     return mat;
   }
 
-  function wallSign(name, title, subtitle, pos, rotY, width = 5.2, height = 1.55, accent = "#7bdcff") {
-    const plane = BABYLON.MeshBuilder.CreatePlane(name, { width, height, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
-    plane.position.copyFrom(pos);
+  // Plane front face in Babylon looks along local -Z. All rotations below are chosen so the front faces the room.
+  function signPlane(name, title, subtitle, position, rotY, width = 5.6, height = 1.55, accent = "#8adcf4", parent = null) {
+    const plane = BABYLON.MeshBuilder.CreatePlane(name, { width, height, sideOrientation: BABYLON.Mesh.FRONTSIDE }, scene);
+    plane.position.copyFrom(position);
     plane.rotation.y = rotY;
     plane.material = makeTextMaterial(name, title, subtitle, accent);
     plane.isPickable = false;
+    if (parent) plane.parent = parent;
     return plane;
   }
 
-  function floorTileGrid(center, width, depth) {
-    const spacing = 2;
-    for (let x = -width / 2 + spacing; x < width / 2; x += spacing) {
-      box(`grid-x-${center.x}-${x}`, { width: 0.018, height: 0.012, depth: depth - 0.5 }, new BABYLON.Vector3(center.x + x, 0.101, center.z), M.floorLine, false);
-    }
-    for (let z = -depth / 2 + spacing; z < depth / 2; z += spacing) {
-      box(`grid-z-${center.z}-${z}`, { width: width - 0.5, height: 0.012, depth: 0.018 }, new BABYLON.Vector3(center.x, 0.101, center.z + z), M.floorLine, false);
-    }
+  function stripLight(name, position, size, emissiveMaterial) {
+    const l = box(name, size, position, emissiveMaterial, false);
+    glow.addIncludedOnlyMesh(l);
+    return l;
   }
 
-  function ceilingPanels(center, width, depth, height) {
-    for (let x = -width / 2 + 3; x <= width / 2 - 3; x += 6) {
-      for (let z = -depth / 2 + 3; z <= depth / 2 - 3; z += 6) {
-        box(`ceil-${center.x}-${center.z}-${x}-${z}`, { width: 2.7, height: 0.05, depth: 0.8 }, new BABYLON.Vector3(center.x + x, height - 0.11, center.z + z), M.white, false);
+  function buildRoomShell(name, center, width, depth, height = 4.6, wallMat = M.wall) {
+    box(`${name}-floor`, { width, height: 0.18, depth }, new BABYLON.Vector3(center.x, 0, center.z), M.floor);
+    box(`${name}-ceiling`, { width, height: 0.18, depth }, new BABYLON.Vector3(center.x, height, center.z), M.ceiling);
+    box(`${name}-north`, { width, height, depth: 0.34 }, new BABYLON.Vector3(center.x, height / 2, center.z + depth / 2), wallMat);
+    box(`${name}-south`, { width, height, depth: 0.34 }, new BABYLON.Vector3(center.x, height / 2, center.z - depth / 2), wallMat);
+    box(`${name}-west`, { width: 0.34, height, depth }, new BABYLON.Vector3(center.x - width / 2, height / 2, center.z), M.wallWarm);
+    box(`${name}-east`, { width: 0.34, height, depth }, new BABYLON.Vector3(center.x + width / 2, height / 2, center.z), M.wallWarm);
+
+    box(`${name}-skirting-n`, { width: width - 0.4, height: 0.16, depth: 0.08 }, new BABYLON.Vector3(center.x, 0.18, center.z + depth / 2 - 0.2), M.black, false);
+    box(`${name}-skirting-s`, { width: width - 0.4, height: 0.16, depth: 0.08 }, new BABYLON.Vector3(center.x, 0.18, center.z - depth / 2 + 0.2), M.black, false);
+
+    for (let x = -width / 2 + 3.3; x < width / 2 - 1; x += 5.8) {
+      for (let z = -depth / 2 + 3; z < depth / 2 - 1; z += 5.5) {
+        stripLight(`${name}-ceiling-light-${x}-${z}`, new BABYLON.Vector3(center.x + x, height - 0.12, center.z + z), { width: 2.8, height: 0.045, depth: 0.32 }, M.white);
       }
     }
+
+    const point = new BABYLON.PointLight(`${name}-point`, new BABYLON.Vector3(center.x, height - 0.8, center.z), scene);
+    point.intensity = 0.48;
+    point.range = 24;
+    point.diffuse = new BABYLON.Color3(1, 0.88, 0.72);
   }
 
-  function buildRoomShell(name, center, width, depth, height = 4.2, material = M.wall) {
-    box(`${name}-floor`, { width, height: 0.2, depth }, new BABYLON.Vector3(center.x, 0, center.z), M.floor);
-    box(`${name}-ceiling`, { width, height: 0.18, depth }, new BABYLON.Vector3(center.x, height, center.z), M.ceiling);
-    box(`${name}-north`, { width, height, depth: 0.3 }, new BABYLON.Vector3(center.x, height / 2, center.z + depth / 2), material);
-    box(`${name}-south`, { width, height, depth: 0.3 }, new BABYLON.Vector3(center.x, height / 2, center.z - depth / 2), material);
-    box(`${name}-west`, { width: 0.3, height, depth }, new BABYLON.Vector3(center.x - width / 2, height / 2, center.z), M.wall2);
-    box(`${name}-east`, { width: 0.3, height, depth }, new BABYLON.Vector3(center.x + width / 2, height / 2, center.z), M.wall2);
-    floorTileGrid(center, width, depth);
-    ceilingPanels(center, width, depth, height);
-    const light = new BABYLON.PointLight(`${name}-light`, new BABYLON.Vector3(center.x, height - 0.65, center.z), scene);
-    light.intensity = 0.55;
-    light.range = 22;
-    light.diffuse = new BABYLON.Color3(0.85, 0.92, 0.95);
-  }
-
-  function buildHubShell() {
-    const center = new BABYLON.Vector3(0, 0, 0);
-    const width = 24;
-    const depth = 20;
-    const height = 4.4;
-    const doorW = 3.4;
-    const doorH = 2.9;
+  function wallWithOpening(prefix, orientation, value, span, height, openingW = 3.7, openingH = 3.1, material = M.wall) {
     const t = 0.34;
+    const side = (span - openingW) / 2;
+    if (orientation === "horizontal") {
+      box(`${prefix}-a`, { width: side, height, depth: t }, new BABYLON.Vector3(-openingW / 2 - side / 2, height / 2, value), material);
+      box(`${prefix}-b`, { width: side, height, depth: t }, new BABYLON.Vector3(openingW / 2 + side / 2, height / 2, value), material);
+      box(`${prefix}-lintel`, { width: openingW, height: height - openingH, depth: t }, new BABYLON.Vector3(0, openingH + (height - openingH) / 2, value), material);
+    } else {
+      box(`${prefix}-a`, { width: t, height, depth: side }, new BABYLON.Vector3(value, height / 2, -openingW / 2 - side / 2), material);
+      box(`${prefix}-b`, { width: t, height, depth: side }, new BABYLON.Vector3(value, height / 2, openingW / 2 + side / 2), material);
+      box(`${prefix}-lintel`, { width: t, height: height - openingH, depth: openingW }, new BABYLON.Vector3(value, openingH + (height - openingH) / 2, 0), material);
+    }
+  }
+
+  function buildHub() {
+    const width = 26;
+    const depth = 22;
+    const height = 5.0;
     box("hub-floor", { width, height: 0.2, depth }, new BABYLON.Vector3(0, 0, 0), M.floor);
     box("hub-ceiling", { width, height: 0.18, depth }, new BABYLON.Vector3(0, height, 0), M.ceiling);
-    floorTileGrid(center, width, depth);
-    ceilingPanels(center, width, depth, height);
 
-    const horizontalWall = (prefix, z, material) => {
-      const sideW = (width - doorW) / 2;
-      box(`${prefix}-left`, { width: sideW, height, depth: t }, new BABYLON.Vector3(-doorW / 2 - sideW / 2, height / 2, z), material);
-      box(`${prefix}-right`, { width: sideW, height, depth: t }, new BABYLON.Vector3(doorW / 2 + sideW / 2, height / 2, z), material);
-      box(`${prefix}-lintel`, { width: doorW, height: height - doorH, depth: t }, new BABYLON.Vector3(0, doorH + (height - doorH) / 2, z), material);
-    };
-    const verticalWall = (prefix, x, material) => {
-      const sideD = (depth - doorW) / 2;
-      box(`${prefix}-front`, { width: t, height, depth: sideD }, new BABYLON.Vector3(x, height / 2, -doorW / 2 - sideD / 2), material);
-      box(`${prefix}-back`, { width: t, height, depth: sideD }, new BABYLON.Vector3(x, height / 2, doorW / 2 + sideD / 2), material);
-      box(`${prefix}-lintel`, { width: t, height: height - doorH, depth: doorW }, new BABYLON.Vector3(x, doorH + (height - doorH) / 2, 0), material);
-    };
-    horizontalWall("hub-north", depth / 2, M.wall);
-    horizontalWall("hub-south", -depth / 2, M.wall);
-    verticalWall("hub-west", -width / 2, M.wall2);
-    verticalWall("hub-east", width / 2, M.wall2);
+    wallWithOpening("hub-north", "horizontal", depth / 2, width, height, 3.8, 3.2, M.wall);
+    wallWithOpening("hub-south", "horizontal", -depth / 2, width, height, 3.8, 3.2, M.wall);
+    wallWithOpening("hub-west", "vertical", -width / 2, depth, height, 3.8, 3.2, M.wallWarm);
+    wallWithOpening("hub-east", "vertical", width / 2, depth, height, 3.8, 3.2, M.wallWarm);
 
-    [[-7.3,-4],[7.3,-4],[-7.3,4],[7.3,4]].forEach((p, i) => {
-      const light = new BABYLON.PointLight(`hub-point-${i}`, new BABYLON.Vector3(p[0], 3.65, p[1]), scene);
-      light.intensity = 0.42;
-      light.range = 11;
-      light.diffuse = new BABYLON.Color3(0.82, 0.9, 0.94);
+    box("hub-carpet-main", { width: 4.3, height: 0.035, depth: 15.8 }, new BABYLON.Vector3(0, 0.13, 0.4), M.carpet, false);
+    box("hub-carpet-side", { width: 18.8, height: 0.035, depth: 3.2 }, new BABYLON.Vector3(0, 0.135, 0.4), M.carpet, false);
+
+    for (let x = -9; x <= 9; x += 6) {
+      for (let z = -7; z <= 7; z += 7) {
+        stripLight(`hub-light-${x}-${z}`, new BABYLON.Vector3(x, height - 0.12, z), { width: 3.0, height: 0.045, depth: 0.34 }, M.white);
+      }
+    }
+
+    const warmPoints = [[-7,3],[7,3],[-7,-4],[7,-4]];
+    warmPoints.forEach((p, i) => {
+      const l = new BABYLON.PointLight(`hub-warm-${i}`, new BABYLON.Vector3(p[0], 3.8, p[1]), scene);
+      l.intensity = 0.55;
+      l.range = 10;
+      l.diffuse = new BABYLON.Color3(1, 0.78, 0.55);
     });
+
+    // Central island: compact enough not to block navigation.
+    box("hub-island", { width: 4.8, height: 0.78, depth: 1.45 }, new BABYLON.Vector3(0, 0.49, 1.0), M.wood);
+    box("hub-island-top", { width: 5.05, height: 0.09, depth: 1.62 }, new BABYLON.Vector3(0, 0.93, 1.0), M.white, false);
+    box("hub-monolith", { width: 4.3, height: 2.0, depth: 0.22 }, new BABYLON.Vector3(0, 2.0, 2.0), M.black, false);
+    signPlane("hub-main-sign", "ИТОГИ 2026", "ЦК БОРУП · HR BACKROOM OFFICE", new BABYLON.Vector3(0, 2.2, 1.86), 0, 4.05, 1.28, "#77d8f1");
+
+    createPlant("hub-plant-a", new BABYLON.Vector3(-10.7, 0, -7.6));
+    createPlant("hub-plant-b", new BABYLON.Vector3(10.7, 0, -7.6));
+    createLounge("hub-lounge-a", new BABYLON.Vector3(-8.4, 0, 5.7), Math.PI / 2);
+    createLounge("hub-lounge-b", new BABYLON.Vector3(8.4, 0, 5.7), -Math.PI / 2);
+
+    signPlane("hub-directory", "ВЫБЕРИТЕ НАПРАВЛЕНИЕ", "01 Приём   ·   02 AI LAB   ·   03 Наставничество", new BABYLON.Vector3(0, 3.65, 10.78), 0, 8.2, 1.35, "#8cd6e9");
   }
 
   function createPlant(name, pos) {
-    cylinder(`${name}-pot`, { height: 0.65, diameterTop: 0.72, diameterBottom: 0.9, tessellation: 24 }, new BABYLON.Vector3(pos.x, 0.43, pos.z), M.wood);
-    cylinder(`${name}-stem`, { height: 1.05, diameter: 0.12, tessellation: 12 }, new BABYLON.Vector3(pos.x, 1.05, pos.z), M.plant);
-    [[0,1.55,0],[.35,1.45,.1],[-.3,1.42,-.1],[.15,1.75,-.15]].forEach((o, i) => {
-      const leaf = BABYLON.MeshBuilder.CreateSphere(`${name}-leaf-${i}`, { diameter: 0.72, segments: 12 }, scene);
+    cylinder(`${name}-pot`, { height: 0.62, diameterTop: 0.72, diameterBottom: 0.9, tessellation: 24 }, new BABYLON.Vector3(pos.x, 0.4, pos.z), M.wood);
+    cylinder(`${name}-stem`, { height: 1.0, diameter: 0.1, tessellation: 12 }, new BABYLON.Vector3(pos.x, 1.0, pos.z), M.plant);
+    [[0,1.5,0],[0.3,1.45,0.1],[-0.28,1.42,-0.08],[0.12,1.73,-0.12]].forEach((o, i) => {
+      const leaf = BABYLON.MeshBuilder.CreateSphere(`${name}-leaf-${i}`, { diameter: 0.68, segments: 12 }, scene);
       leaf.position = new BABYLON.Vector3(pos.x + o[0], o[1], pos.z + o[2]);
       leaf.scaling.y = 1.35;
       leaf.material = M.plant;
     });
   }
 
-  function createReception() {
-    box("reception-main", { width: 5.2, height: 1.0, depth: 1.3 }, new BABYLON.Vector3(0, 0.6, 1.0), M.wood);
-    box("reception-top", { width: 5.5, height: 0.12, depth: 1.5 }, new BABYLON.Vector3(0, 1.15, 1.0), M.white, false);
-    wallSign("reception-sign", "HR 2026", "ЦЕНТРАЛЬНЫЙ ХАБ", new BABYLON.Vector3(0, 1.95, 1.72), Math.PI, 3.8, 1.0, "#5fcfff");
-  }
-
-  function createBench(name, pos, rotY = 0) {
+  function createLounge(name, pos, rotY = 0) {
     const root = new BABYLON.TransformNode(name, scene);
     root.position.copyFrom(pos);
     root.rotation.y = rotY;
-    box(`${name}-seat`, { width: 2.7, height: 0.18, depth: 0.75 }, new BABYLON.Vector3(0, 0.62, 0), M.wood, false, root);
-    box(`${name}-leg1`, { width: 0.18, height: 0.55, depth: 0.55 }, new BABYLON.Vector3(-1.05, 0.31, 0), M.metal, false, root);
-    box(`${name}-leg2`, { width: 0.18, height: 0.55, depth: 0.55 }, new BABYLON.Vector3(1.05, 0.31, 0), M.metal, false, root);
+    box(`${name}-seat`, { width: 2.65, height: 0.42, depth: 0.88 }, new BABYLON.Vector3(0, 0.48, 0), M.wood, false, root);
+    box(`${name}-back`, { width: 2.65, height: 0.84, depth: 0.24 }, new BABYLON.Vector3(0, 0.98, 0.34), M.wallWarm, false, root);
+    box(`${name}-table`, { width: 1.2, height: 0.12, depth: 0.7 }, new BABYLON.Vector3(0, 0.55, -1.2), M.white, false, root);
+    cylinder(`${name}-leg`, { height: 0.48, diameter: 0.16, tessellation: 16 }, new BABYLON.Vector3(0, 0.3, -1.2), M.metal, root);
   }
 
-  function createAlcove(name, pos, rotY, accentMat) {
-    const root = new BABYLON.TransformNode(`${name}-alcove`, scene);
-    root.position.copyFrom(pos);
-    root.rotation.y = rotY;
-    box(`${name}-alcove-floor`, { width: 3.3, height: 0.1, depth: 3.1 }, new BABYLON.Vector3(0, 0.02, -1.4), M.floor, false, root);
-    box(`${name}-alcove-ceiling`, { width: 3.3, height: 0.1, depth: 3.1 }, new BABYLON.Vector3(0, 3.0, -1.4), M.ceiling, false, root);
-    box(`${name}-alcove-left`, { width: 0.15, height: 3, depth: 3.1 }, new BABYLON.Vector3(-1.58, 1.5, -1.4), M.wall2, false, root);
-    box(`${name}-alcove-right`, { width: 0.15, height: 3, depth: 3.1 }, new BABYLON.Vector3(1.58, 1.5, -1.4), M.wall2, false, root);
-    box(`${name}-alcove-light`, { width: 1.8, height: 0.06, depth: 0.25 }, new BABYLON.Vector3(0, 2.88, -1.0), accentMat, false, root);
-  }
-
-  function createDoor(name, pos, rotY, accentMat, accentHex, title, subtitle, targetZone, locked = false) {
+  function createSlidingDoor(name, pos, rotY, accentMat, accentHex, title, subtitle, targetZone, locked = false) {
     const root = new BABYLON.TransformNode(`${name}-root`, scene);
     root.position.copyFrom(pos);
     root.rotation.y = rotY;
-    box(`${name}-jamb-l`, { width: 0.24, height: 3.0, depth: 0.34 }, new BABYLON.Vector3(-1.55, 1.5, 0), M.metal, false, root);
-    box(`${name}-jamb-r`, { width: 0.24, height: 3.0, depth: 0.34 }, new BABYLON.Vector3(1.55, 1.5, 0), M.metal, false, root);
-    box(`${name}-header`, { width: 3.34, height: 0.24, depth: 0.34 }, new BABYLON.Vector3(0, 2.89, 0), M.metal, false, root);
-    box(`${name}-accent-l`, { width: 0.055, height: 2.72, depth: 0.38 }, new BABYLON.Vector3(-1.38, 1.45, -0.02), accentMat, false, root);
-    box(`${name}-accent-r`, { width: 0.055, height: 2.72, depth: 0.38 }, new BABYLON.Vector3(1.38, 1.45, -0.02), accentMat, false, root);
-    const panel = box(`${name}-panel`, { width: 2.72, height: 2.62, depth: 0.18 }, new BABYLON.Vector3(0, 1.43, 0.03), locked ? M.red : M.dark, true, root);
-    panel.isPickable = true;
-    panel.actionManager = new BABYLON.ActionManager(scene);
-    const sign = BABYLON.MeshBuilder.CreatePlane(`${name}-sign`, { width: 3.5, height: 0.9, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
-    sign.position = new BABYLON.Vector3(0, 3.48, 0.05);
-    sign.parent = root;
-    sign.material = makeTextMaterial(`${name}-sign`, title, subtitle, accentHex, "rgba(8,13,16,.98)");
-    sign.isPickable = false;
-    createAlcove(name, pos, rotY, accentMat);
-    const inward = new BABYLON.Vector3(Math.sin(rotY), 0, Math.cos(rotY));
-    const triggerPos = pos.add(inward.scale(1.35)).add(new BABYLON.Vector3(0, 1.0, 0));
-    const entry = { name, root, panel, targetZone, locked, title, triggerPos, open: false, accentMat, accentHex, sign };
-    doorRegistry[name] = entry;
+
+    // Recessed vestibule and frame.
+    box(`${name}-recess-top`, { width: 4.5, height: 0.28, depth: 1.5 }, new BABYLON.Vector3(0, 3.25, 0.45), M.black, false, root);
+    box(`${name}-recess-left`, { width: 0.32, height: 3.2, depth: 1.5 }, new BABYLON.Vector3(-2.08, 1.6, 0.45), M.black, false, root);
+    box(`${name}-recess-right`, { width: 0.32, height: 3.2, depth: 1.5 }, new BABYLON.Vector3(2.08, 1.6, 0.45), M.black, false, root);
+    stripLight(`${name}-accent`, new BABYLON.Vector3(0, 3.08, -0.22), { width: 3.3, height: 0.06, depth: 0.08 }, accentMat).parent = root;
+
+    const leftLeaf = box(`${name}-left`, { width: 1.68, height: 2.82, depth: 0.16 }, new BABYLON.Vector3(-0.84, 1.46, 0), locked ? M.red : M.brushed, true, root);
+    const rightLeaf = box(`${name}-right`, { width: 1.68, height: 2.82, depth: 0.16 }, new BABYLON.Vector3(0.84, 1.46, 0), locked ? M.red : M.brushed, true, root);
+    box(`${name}-left-inset`, { width: 1.22, height: 2.34, depth: 0.025 }, new BABYLON.Vector3(-0.84, 1.46, -0.1), M.black, false, root);
+    box(`${name}-right-inset`, { width: 1.22, height: 2.34, depth: 0.025 }, new BABYLON.Vector3(0.84, 1.46, -0.1), M.black, false, root);
+
+    const sign = signPlane(`${name}-sign`, title, subtitle, new BABYLON.Vector3(0, 3.82, -0.18), 0, 4.2, 1.02, accentHex, root);
+
+    root.computeWorldMatrix(true);
+    const inward = BABYLON.Vector3.TransformNormal(new BABYLON.Vector3(0, 0, -1), root.getWorldMatrix()).normalize();
+    const triggerPos = pos.add(inward.scale(1.55)).add(new BABYLON.Vector3(0, 1.05, 0));
+    const entry = { name, root, leftLeaf, rightLeaf, sign, targetZone, locked, triggerPos, accentMat, accentHex };
+    doors[name] = entry;
+
     const activate = () => activateDoor(entry);
-    panel.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, activate));
-    interactions.push({ position: triggerPos, radius: 2.1, label: locked ? "E / клик — проверить доступ" : `E / клик — войти: ${title}`, action: activate });
+    [leftLeaf, rightLeaf].forEach((leaf) => {
+      leaf.isPickable = true;
+      leaf.actionManager = new BABYLON.ActionManager(scene);
+      leaf.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, activate));
+    });
+    interactions.push({ position: triggerPos, radius: 2.35, label: locked ? "E / клик — проверить доступ" : `E / клик — ${title}`, action: activate });
     return entry;
   }
 
-  function refreshPortalSign() {
-    const p = doorRegistry.portal;
-    if (!p) return;
-    const isOpen = completed.size === data.totalZones;
-    p.locked = !isOpen;
-    p.panel.material = isOpen ? M.violet : M.red;
-    p.sign.material = makeTextMaterial("portal-sign-live", isOpen ? "2027 · ДОСТУП ОТКРЫТ" : "2027 · ЗАКРЫТО", isOpen ? "E / клик — перейти" : `Сначала пройдите ${data.totalZones} / ${data.totalZones}`, isOpen ? "#c5b2ff" : "#c06a7d", "rgba(8,13,16,.98)");
-  }
-
-  function animateDoor(entry, callback) {
+  function animateDoor(entry, onOpened) {
     if (transitionBusy) return;
     transitionBusy = true;
-    entry.panel.checkCollisions = false;
-    const startY = entry.panel.position.y;
-    BABYLON.Animation.CreateAndStartAnimation(`${entry.name}-open`, entry.panel, "position.y", 60, 30, startY, 4.0, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, new BABYLON.CubicEase(), () => {
-      entry.open = true;
+    entry.leftLeaf.checkCollisions = false;
+    entry.rightLeaf.checkCollisions = false;
+    const lx = entry.leftLeaf.position.x;
+    const rx = entry.rightLeaf.position.x;
+    const ease = new BABYLON.CubicEase();
+    ease.setEasingMode(BABYLON.EasingFunction.EASINGMODE_EASEINOUT);
+
+    BABYLON.Animation.CreateAndStartAnimation(`${entry.name}-left-open`, entry.leftLeaf, "position.x", 60, 34, lx, -1.75, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, ease);
+    BABYLON.Animation.CreateAndStartAnimation(`${entry.name}-right-open`, entry.rightLeaf, "position.x", 60, 34, rx, 1.75, BABYLON.Animation.ANIMATIONLOOPMODE_CONSTANT, ease, () => {
       setTimeout(() => {
-        callback();
+        onOpened();
         setTimeout(() => {
-          entry.panel.position.y = startY;
-          entry.panel.checkCollisions = true;
-          entry.open = false;
+          entry.leftLeaf.position.x = lx;
+          entry.rightLeaf.position.x = rx;
+          entry.leftLeaf.checkCollisions = true;
+          entry.rightLeaf.checkCollisions = true;
           transitionBusy = false;
-        }, 320);
-      }, 140);
+        }, 420);
+      }, 160);
     });
   }
 
   function activateDoor(entry) {
     if (entry.name === "portal" && completed.size !== data.totalZones) {
-      showToast(`Портал 2027 пока закрыт. Пройдено: ${completed.size} / ${data.totalZones}.`, 3800);
+      showToast(`Переход в 2027 закрыт. Пройдено ${completed.size} из ${data.totalZones} направлений.`, 3900);
       return;
     }
     animateDoor(entry, () => travel(entry.targetZone));
   }
 
-  function createActionConsole(name, pos, accentMat, accentHex, title, zoneId) {
-    box(`${name}-base`, { width: 2.4, height: 0.9, depth: 1.2 }, new BABYLON.Vector3(pos.x, 0.52, pos.z), M.wood, false);
-    const top = box(`${name}-top`, { width: 2.15, height: 0.12, depth: 1.05 }, new BABYLON.Vector3(pos.x, 1.03, pos.z), accentMat, false);
+  function refreshPortal() {
+    const p = doors.portal;
+    if (!p) return;
+    const open = completed.size === data.totalZones;
+    p.locked = !open;
+    p.leftLeaf.material = open ? M.violet : M.red;
+    p.rightLeaf.material = open ? M.violet : M.red;
+    p.sign.material = makeTextMaterial("portal-sign-live", open ? "2027 · ДОСТУП ОТКРЫТ" : "2027 · ЗАКРЫТО", open ? "E / клик — перейти к планам" : `Пройдено ${completed.size} / ${data.totalZones}`, open ? "#bca8ff" : "#c67a86");
+  }
+
+  function createMetricCards(prefix, metrics, wallPosition, rotY, accent) {
+    const offsets = [-4.8, -1.6, 1.6, 4.8];
+    metrics.slice(0, 4).forEach((m, i) => {
+      const p = wallPosition.clone();
+      if (Math.abs(Math.cos(rotY)) > 0.5) p.x += offsets[i]; else p.z += offsets[i];
+      signPlane(`${prefix}-${i}`, m[0], m[1], p, rotY, 2.75, 1.35, accent);
+    });
+  }
+
+  function createActionConsole(name, position, accentMat, accentHex, title, zoneId) {
+    box(`${name}-base`, { width: 2.6, height: 0.86, depth: 1.35 }, new BABYLON.Vector3(position.x, 0.52, position.z), M.wood, false);
+    const top = box(`${name}-top`, { width: 2.25, height: 0.1, depth: 1.05 }, new BABYLON.Vector3(position.x, 1.0, position.z), accentMat, false);
+    stripLight(`${name}-light`, new BABYLON.Vector3(position.x, 1.07, position.z - 0.38), { width: 1.5, height: 0.035, depth: 0.05 }, accentMat);
+    signPlane(`${name}-sign`, title, "E / клик — завершить зону", new BABYLON.Vector3(position.x, 1.92, position.z + 0.58), 0, 3.3, 0.95, accentHex);
     const action = () => complete(zoneId);
     top.isPickable = true;
     top.actionManager = new BABYLON.ActionManager(scene);
     top.actionManager.registerAction(new BABYLON.ExecuteCodeAction(BABYLON.ActionManager.OnPickTrigger, action));
-    wallSign(`${name}-sign`, title, "E / клик — завершить зону", new BABYLON.Vector3(pos.x, 1.82, pos.z + 0.12), Math.PI, 3.1, 0.85, accentHex);
-    interactions.push({ position: new BABYLON.Vector3(pos.x, 1.0, pos.z - 1.0), radius: 2.0, label: `E / клик — ${title}`, action });
+    interactions.push({ position: new BABYLON.Vector3(position.x, 1.0, position.z - 1.0), radius: 2.1, label: `E / клик — ${title}`, action });
   }
 
-  function createMetricWall(prefix, metrics, wallZ, rotY, centerX = 0, accent = "#7bdcff") {
-    const xs = [-4.8, -1.6, 1.6, 4.8];
-    metrics.slice(0, 4).forEach((m, i) => wallSign(`${prefix}-${i}`, m[0], m[1], new BABYLON.Vector3(centerX + xs[i], 2.2, wallZ), rotY, 2.7, 1.35, accent));
+  function createBackDoor(name, roomCenter, roomWidth, target = "hub") {
+    return createSlidingDoor(name, new BABYLON.Vector3(roomCenter.x - roomWidth / 2 + 0.18, 0, roomCenter.z), -Math.PI / 2, M.metal, "#9ea9aa", "← HR HUB", "вернуться в центральный зал", target, false);
   }
 
-  function createBackDoor(name, pos, rotY, title, target = "hub") {
-    return createDoor(name, pos, rotY, M.metal, "#8da4af", title, "вернуться в центральный зал", target, false);
+  function buildRecruitment(center) {
+    buildRoomShell("recruitment", center, 20, 18, 4.7, M.wall);
+    signPlane("rec-title", "01 · ПРИЁМ", "Цифровой путь: кандидат → сотрудник", new BABYLON.Vector3(center.x, 3.2, center.z + 8.78), 0, 7.4, 1.5, "#5dd5f5");
+
+    const labels = ["КАНДИДАТ", "ЗАЯВКА", "ДОКУМЕНТЫ", "ПРОВЕРКА", "ОФОРМЛЕНИЕ", "СОТРУДНИК"];
+    labels.forEach((label, i) => {
+      const x = center.x - 5 + i * 2;
+      const z = center.z + 1.2;
+      cylinder(`rec-ped-${i}`, { height: 0.24, diameter: 1.35, tessellation: 32 }, new BABYLON.Vector3(x, 0.22, z), i === 5 ? M.teal : M.cyan);
+      const card = box(`rec-card-${i}`, { width: 1.45, height: 1.0, depth: 0.12 }, new BABYLON.Vector3(x, 1.02, z), M.black, false);
+      signPlane(`rec-card-sign-${i}`, label, i === 5 ? "результат" : `этап ${i + 1}`, new BABYLON.Vector3(x, 1.08, z - 0.07), 0, 1.34, 0.82, i === 5 ? "#77e5bd" : "#6edcf8");
+      if (i < 5) stripLight(`rec-line-${i}`, new BABYLON.Vector3(x + 1, 0.16, z), { width: 1.0, height: 0.025, depth: 0.06 }, M.cyan);
+    });
+    createMetricCards("rec-metric", data.zones.recruitment.metrics, new BABYLON.Vector3(center.x, 2.25, center.z - 8.78), Math.PI, "#6edcf8");
+    createActionConsole("rec-action", new BABYLON.Vector3(center.x, 0, center.z - 4.4), M.cyan, "#6edcf8", "ПОДТВЕРДИТЬ РЕЗУЛЬТАТЫ", "recruitment");
+    createBackDoor("rec-back", center, 20);
   }
 
-  const zones = {
-    hub: { pos: new BABYLON.Vector3(0, 1.72, -6.8), target: new BABYLON.Vector3(0, 1.7, 1.4) },
-    recruitment: { pos: new BABYLON.Vector3(-42, 1.72, -5.8), target: new BABYLON.Vector3(-42, 1.65, 1.8) },
-    ai: { pos: new BABYLON.Vector3(0, 1.72, 38.2), target: new BABYLON.Vector3(0, 1.8, 45) },
-    mentoring: { pos: new BABYLON.Vector3(42, 1.72, -5.8), target: new BABYLON.Vector3(42, 1.65, 1.8) },
-    future: { pos: new BABYLON.Vector3(0, 1.72, -48.5), target: new BABYLON.Vector3(0, 1.8, -42) }
+  function buildAI(center) {
+    buildRoomShell("ai", center, 20, 18, 4.9, M.wallWarm);
+    signPlane("ai-title", "02 · AI LAB", "ИИ-решения и измеримый эффект", new BABYLON.Vector3(center.x, 3.25, center.z + 8.78), 0, 7.0, 1.5, "#6fe5c2");
+
+    const core = BABYLON.MeshBuilder.CreateSphere("ai-core", { diameter: 3.0, segments: 32 }, scene);
+    core.position = new BABYLON.Vector3(center.x, 2.0, center.z + 0.9);
+    core.material = M.glass;
+    const ringA = BABYLON.MeshBuilder.CreateTorus("ai-ring-a", { diameter: 4.1, thickness: 0.045, tessellation: 72 }, scene);
+    ringA.position.copyFrom(core.position);
+    ringA.rotation.x = Math.PI / 2.4;
+    ringA.material = M.teal;
+    const ringB = BABYLON.MeshBuilder.CreateTorus("ai-ring-b", { diameter: 3.55, thickness: 0.04, tessellation: 72 }, scene);
+    ringB.position.copyFrom(core.position);
+    ringB.rotation.y = Math.PI / 2.7;
+    ringB.material = M.cyan;
+    glow.addIncludedOnlyMesh(ringA);
+    glow.addIncludedOnlyMesh(ringB);
+
+    [[-5.2,3.0],[5.2,3.0],[-5.2,-1.5],[5.2,-1.5]].forEach((o, i) => {
+      const x = center.x + o[0];
+      const z = center.z + o[1];
+      cylinder(`agent-ped-${i}`, { height: 0.22, diameter: 1.8, tessellation: 32 }, new BABYLON.Vector3(x, 0.2, z), M.teal);
+      signPlane(`agent-sign-${i}`, `AI AGENT 0${i + 1}`, "данные 2026", new BABYLON.Vector3(x, 1.25, z), 0, 2.55, 0.9, "#73e8c4");
+    });
+
+    createMetricCards("ai-metric", data.zones.ai.metrics, new BABYLON.Vector3(center.x, 2.25, center.z - 8.78), Math.PI, "#73e8c4");
+    createActionConsole("ai-action", new BABYLON.Vector3(center.x, 0, center.z - 4.5), M.teal, "#73e8c4", "АКТИВИРОВАТЬ AI CORE", "ai");
+    createBackDoor("ai-back", center, 20);
+
+    scene.onBeforeRenderObservable.add(() => {
+      ringA.rotation.z += 0.004;
+      ringB.rotation.x += 0.003;
+      core.rotation.y += 0.002;
+    });
+  }
+
+  function buildMentoring(center) {
+    buildRoomShell("mentoring", center, 20, 18, 4.7, M.wall);
+    signPlane("mentor-title", "03 · НАСТАВНИЧЕСТВО", "Сеть адаптации и развития", new BABYLON.Vector3(center.x, 3.2, center.z + 8.78), 0, 7.4, 1.5, "#e9b76e");
+
+    const points = [];
+    for (let i = 0; i < 12; i++) {
+      const row = Math.floor(i / 6);
+      const col = i % 6;
+      const x = center.x - 5 + col * 2;
+      const z = center.z + 1.8 - row * 3.2;
+      const mentor = i < 4;
+      cylinder(`mentor-body-${i}`, { height: 1.0, diameter: 0.38, tessellation: 16 }, new BABYLON.Vector3(x, 0.78, z), mentor ? M.amber : M.white);
+      const head = BABYLON.MeshBuilder.CreateSphere(`mentor-head-${i}`, { diameter: 0.46, segments: 16 }, scene);
+      head.position = new BABYLON.Vector3(x, 1.48, z);
+      head.material = mentor ? M.amber : M.white;
+      points.push(new BABYLON.Vector3(x, 1.1, z));
+    }
+
+    [[0,6],[0,7],[1,8],[1,9],[2,10],[3,11]].forEach((pair, i) => {
+      const line = BABYLON.MeshBuilder.CreateLines(`mentor-link-${i}`, { points: [points[pair[0]], points[pair[1]]] }, scene);
+      line.color = new BABYLON.Color3(0.83, 0.58, 0.25);
+      line.alpha = 0.72;
+    });
+
+    createMetricCards("mentor-metric", data.zones.mentoring.metrics, new BABYLON.Vector3(center.x, 2.25, center.z - 8.78), Math.PI, "#e9b76e");
+    createActionConsole("mentor-action", new BABYLON.Vector3(center.x, 0, center.z - 4.5), M.amber, "#e9b76e", "ПОДТВЕРДИТЬ СЕТЬ", "mentoring");
+    createBackDoor("mentor-back", center, 20);
+  }
+
+  function buildFuture(center) {
+    buildRoomShell("future", center, 20, 18, 5.0, M.wallWarm);
+    signPlane("future-title", "2027 · NEXT CHAPTER", "Планы будут заполнены после утверждения итогов 2026", new BABYLON.Vector3(center.x, 3.35, center.z + 8.78), 0, 8.0, 1.55, "#c0aff8");
+    const labels = ["AI", "АВТОМАТИЗАЦИЯ", "ЛЮДИ", "ЭФФЕКТИВНОСТЬ", "КЛИЕНТСКИЙ СЕРВИС"];
+    labels.forEach((label, i) => {
+      const a = Math.PI * 2 * i / labels.length - Math.PI / 2;
+      const x = center.x + Math.cos(a) * 5.2;
+      const z = center.z + Math.sin(a) * 4.0;
+      cylinder(`future-ped-${i}`, { height: 0.28, diameter: 2.1, tessellation: 32 }, new BABYLON.Vector3(x, 0.22, z), M.violet);
+      signPlane(`future-sign-${i}`, `0${i + 1} · ${label}`, "план 2027", new BABYLON.Vector3(x, 1.45, z), 0, 3.0, 0.9, "#c7b8fa");
+    });
+    createBackDoor("future-back", center, 20);
+  }
+
+  const zoneMap = {
+    hub: { pos: new BABYLON.Vector3(0, 1.72, -7.2), target: new BABYLON.Vector3(0, 1.65, 1.2) },
+    recruitment: { pos: new BABYLON.Vector3(-42, 1.72, -5.9), target: new BABYLON.Vector3(-42, 1.6, 1.4) },
+    ai: { pos: new BABYLON.Vector3(0, 1.72, 35.8), target: new BABYLON.Vector3(0, 1.8, 42.0) },
+    mentoring: { pos: new BABYLON.Vector3(42, 1.72, -5.9), target: new BABYLON.Vector3(42, 1.6, 1.4) },
+    future: { pos: new BABYLON.Vector3(0, 1.72, -47.8), target: new BABYLON.Vector3(0, 1.8, -41.0) }
   };
 
-  buildHubShell();
-  createReception();
-  createPlant("hub-plant-1", new BABYLON.Vector3(-9.2, 0, -6.8));
-  createPlant("hub-plant-2", new BABYLON.Vector3(9.2, 0, -6.8));
-  createPlant("hub-plant-3", new BABYLON.Vector3(-9.2, 0, 6.8));
-  createPlant("hub-plant-4", new BABYLON.Vector3(9.2, 0, 6.8));
-  createBench("hub-bench-left", new BABYLON.Vector3(-6.4, 0, 5.7), Math.PI / 2);
-  createBench("hub-bench-right", new BABYLON.Vector3(6.4, 0, 5.7), -Math.PI / 2);
-  wallSign("hub-directory", "КАРТА ПРОЕКТОВ", "01 ПРИЁМ   ·   02 AI LAB   ·   03 НАСТАВНИЧЕСТВО", new BABYLON.Vector3(0, 2.8, 9.78), Math.PI, 8.8, 1.45, "#6cd8ff");
-  wallSign("hub-side-left", "01 · ПРИЁМ", "цифровой маршрут сотрудника", new BABYLON.Vector3(-11.78, 2.8, 0), Math.PI / 2, 5.0, 1.35, "#35c8ff");
-  wallSign("hub-side-right", "03 · НАСТАВНИЧЕСТВО", "адаптация и развитие", new BABYLON.Vector3(11.78, 2.8, 0), -Math.PI / 2, 5.0, 1.35, "#efb35c");
-  createDoor("recruitment", new BABYLON.Vector3(-12.0, 0, 0), Math.PI / 2, M.cyan, "#35c8ff", "01 · ПРИЁМ", "EMPLOYEE ENTRY", "recruitment");
-  createDoor("ai", new BABYLON.Vector3(0, 0, 10.0), Math.PI, M.teal, "#48dcb1", "02 · AI LAB", "DIGITAL HR", "ai");
-  createDoor("mentoring", new BABYLON.Vector3(12.0, 0, 0), -Math.PI / 2, M.amber, "#efb35c", "03 · НАСТАВНИЧЕСТВО", "PEOPLE DEVELOPMENT", "mentoring");
-  createDoor("portal", new BABYLON.Vector3(0, 0, -10.0), 0, M.violet, "#a982ff", "2027 · ЗАКРЫТО", `Сначала пройдите ${data.totalZones} / ${data.totalZones}`, "future", true);
+  // Build world.
+  buildHub();
+  createSlidingDoor("recruitment", new BABYLON.Vector3(-13.0, 0, 0), -Math.PI / 2, M.cyan, "#6edcf8", "01 · ПРИЁМ", "цифровой маршрут сотрудника", "recruitment");
+  createSlidingDoor("ai", new BABYLON.Vector3(0, 0, 11.0), 0, M.teal, "#73e8c4", "02 · AI LAB", "ИИ-решения и эффект", "ai");
+  createSlidingDoor("mentoring", new BABYLON.Vector3(13.0, 0, 0), Math.PI / 2, M.amber, "#e9b76e", "03 · НАСТАВНИЧЕСТВО", "адаптация и развитие", "mentoring");
+  createSlidingDoor("portal", new BABYLON.Vector3(0, 0, -11.0), Math.PI, M.violet, "#c0aff8", "2027 · ЗАКРЫТО", "пройдите 0 / 3", "future", true);
 
-  buildRoomShell("recruitment-room", new BABYLON.Vector3(-42, 0, 0), 20, 18, 4.3, M.wall);
-  wallSign("rec-title", "ПРОЕКТ 01 · ПРИЁМ", "Цифровой путь: кандидат → сотрудник", new BABYLON.Vector3(-42, 2.9, 8.82), Math.PI, 7.5, 1.45, "#35c8ff");
-  ["КАНДИДАТ","ЗАЯВКА","ДОКУМЕНТЫ","ПРОВЕРКА","ОФОРМЛЕНИЕ","СОТРУДНИК"].forEach((s, i) => {
-    const x = -47 + i * 2.0;
-    box(`rec-stage-${i}`, { width: 1.45, height: 0.18, depth: 1.45 }, new BABYLON.Vector3(x, 0.2, 1.4), i === 5 ? M.teal : M.cyan, false);
-    cylinder(`rec-marker-${i}`, { height: 1.4, diameter: 0.5, tessellation: 18 }, new BABYLON.Vector3(x, 0.95, 1.4), i === 5 ? M.teal : M.metal);
-    wallSign(`rec-stage-sign-${i}`, s, `ЭТАП ${String(i + 1).padStart(2, "0")}`, new BABYLON.Vector3(x, 2.05, 1.4), Math.PI, 1.8, 0.8, i === 5 ? "#48dcb1" : "#35c8ff");
-  });
-  createMetricWall("rec-metric", data.zones.recruitment.metrics, -8.82, 0, -42, "#35c8ff");
-  createActionConsole("rec-console", new BABYLON.Vector3(-42, 0, -4.8), M.cyan, "#35c8ff", "ПОДТВЕРДИТЬ РЕЗУЛЬТАТЫ", "recruitment");
-  createBackDoor("rec-back", new BABYLON.Vector3(-51.85, 0, 0), Math.PI / 2, "← HR HUB");
+  buildRecruitment(new BABYLON.Vector3(-42, 0, 0));
+  buildAI(new BABYLON.Vector3(0, 0, 42));
+  buildMentoring(new BABYLON.Vector3(42, 0, 0));
+  buildFuture(new BABYLON.Vector3(0, 0, -42));
 
-  buildRoomShell("ai-room", new BABYLON.Vector3(0, 0, 45), 20, 18, 4.6, M.wall2);
-  wallSign("ai-title", "ПРОЕКТ 02 · AI LAB", "ИИ-решения, агенты и измеримый эффект", new BABYLON.Vector3(0, 3.05, 53.82), Math.PI, 7.8, 1.45, "#48dcb1");
-  const core = BABYLON.MeshBuilder.CreateSphere("ai-core", { diameter: 3.5, segments: 28 }, scene);
-  core.position = new BABYLON.Vector3(0, 2.0, 45);
-  core.material = M.teal;
-  const coreRing = BABYLON.MeshBuilder.CreateTorus("ai-core-ring", { diameter: 5.0, thickness: 0.08, tessellation: 64 }, scene);
-  coreRing.position = new BABYLON.Vector3(0, 2.0, 45);
-  coreRing.rotation.x = Math.PI / 2;
-  coreRing.material = M.cyan;
-  [[-5,41],[5,41],[-5,49],[5,49]].forEach((p, i) => {
-    box(`agent-desk-${i}`, { width: 2.3, height: 0.9, depth: 1.4 }, new BABYLON.Vector3(p[0], 0.55, p[1]), M.wood, false);
-    wallSign(`agent-sign-${i}`, `AI AGENT 0${i + 1}`, "данные 2026 будут добавлены", new BABYLON.Vector3(p[0], 1.7, p[1]), 0, 3.1, 0.88, "#48dcb1");
-  });
-  createMetricWall("ai-metric", data.zones.ai.metrics, 36.18, 0, 0, "#48dcb1");
-  createActionConsole("ai-console", new BABYLON.Vector3(0, 0, 39.7), M.teal, "#48dcb1", "АКТИВИРОВАТЬ AI CORE", "ai");
-  createBackDoor("ai-back", new BABYLON.Vector3(-9.85, 0, 45), Math.PI / 2, "← HR HUB");
-
-  buildRoomShell("mentor-room", new BABYLON.Vector3(42, 0, 0), 20, 18, 4.3, M.wall);
-  wallSign("mentor-title", "ПРОЕКТ 03 · НАСТАВНИЧЕСТВО", "Новички, наставники и сеть адаптации", new BABYLON.Vector3(42, 2.9, 8.82), Math.PI, 8.4, 1.45, "#efb35c");
-  const people = [];
-  for (let i = 0; i < 14; i++) {
-    const x = 36.8 + (i % 7) * 1.75;
-    const z = 0.5 + Math.floor(i / 7) * 3.2;
-    const color = i < 5 ? M.amber : M.white;
-    cylinder(`mentor-body-${i}`, { height: 1.0, diameter: 0.4, tessellation: 16 }, new BABYLON.Vector3(x, 0.76, z), color);
-    const head = BABYLON.MeshBuilder.CreateSphere(`mentor-head-${i}`, { diameter: 0.46, segments: 12 }, scene);
-    head.position = new BABYLON.Vector3(x, 1.52, z);
-    head.material = color;
-    people.push(new BABYLON.Vector3(x, 1.1, z));
-  }
-  for (let i = 0; i < 5; i++) {
-    const path = BABYLON.MeshBuilder.CreateLines(`mentor-link-${i}`, { points: [people[i], people[5 + (i * 2) % 9]] }, scene);
-    path.color = BABYLON.Color3.FromHexString("#efb35c");
-  }
-  createMetricWall("mentor-metric", data.zones.mentoring.metrics, -8.82, 0, 42, "#efb35c");
-  createActionConsole("mentor-console", new BABYLON.Vector3(42, 0, -4.8), M.amber, "#efb35c", "ЗАФИКСИРОВАТЬ СЕТЬ", "mentoring");
-  createBackDoor("mentor-back", new BABYLON.Vector3(32.15, 0, 0), Math.PI / 2, "← HR HUB");
-
-  buildRoomShell("future-room", new BABYLON.Vector3(0, 0, -42), 20, 18, 4.6, M.wall2);
-  wallSign("future-title", "2027 · NEXT CHAPTER", "Планы будут заполнены после утверждения итогов 2026", new BABYLON.Vector3(0, 3.05, -33.18), 0, 8.4, 1.45, "#a982ff");
-  ["AI","АВТОМАТИЗАЦИЯ","ЛЮДИ","ЭФФЕКТИВНОСТЬ","КЛИЕНТСКИЙ СЕРВИС"].forEach((s, i) => {
-    const x = -6 + i * 3;
-    box(`future-ped-${i}`, { width: 2.2, height: 0.8, depth: 2.2 }, new BABYLON.Vector3(x, 0.5, -42), M.dark, false);
-    wallSign(`future-sign-${i}`, `0${i + 1} · ${s}`, "план 2027", new BABYLON.Vector3(x, 1.9, -42), 0, 2.7, 0.95, "#a982ff");
-  });
-  createBackDoor("future-back", new BABYLON.Vector3(-9.85, 0, -42), Math.PI / 2, "← HR HUB");
-
-  function showToast(text, ms = 3600) {
+  function showToast(text, ms = 4200) {
     clearTimeout(toastTimer);
     toast.textContent = text;
     toast.classList.remove("hidden");
@@ -415,35 +490,37 @@
       const id = row.dataset.zone;
       const done = completed.has(id);
       row.classList.toggle("complete", done);
-      row.querySelector("i").textContent = done ? "✓" : "○";
+      const mark = row.querySelector("i");
+      if (mark) mark.textContent = done ? "✓" : "○";
     });
     progressText.textContent = `${completed.size} / ${data.totalZones}`;
-    refreshPortalSign();
-    if (completed.size === data.totalZones) showToast("Все пилотные зоны пройдены. Дверь 2027 разблокирована.", 4500);
-  }
-
-  function complete(id) {
-    if (completed.has(id)) {
-      showToast(`${data.zones[id].name}: зона уже пройдена.`, 2600);
-      return;
-    }
-    completed.add(id);
-    updateGuide();
-    showToast(`${data.zones[id].name}: результаты отмечены. Вернитесь в HR HUB.`, 3800);
+    refreshPortal();
+    if (completed.size === data.totalZones) showToast("Все направления пройдены. Переход в 2027 разблокирован.", 5000);
   }
 
   function travel(id) {
+    currentZone = id;
     fade.classList.add("active");
     setTimeout(() => {
-      camera.position.copyFrom(zones[id].pos);
-      camera.setTarget(zones[id].target);
-      zoneName.textContent = id === "hub" ? "HR HUB — ЦЕНТРАЛЬНЫЙ ЗАЛ" : data.zones[id].name;
+      camera.position.copyFrom(zoneMap[id].pos);
+      camera.setTarget(zoneMap[id].target);
+      zoneName.textContent = id === "hub" ? "HR HUB · ИТОГИ 2026" : data.zones[id].name;
       hubGuide.style.display = id === "hub" ? "block" : "none";
       fade.classList.remove("active");
-      if (id === "hub") showToast("Центральный зал. Выберите дверь проекта: Приём, AI LAB или Наставничество.", 4200);
-      else if (data.zones[id]?.intro) showToast(data.zones[id].intro, 3600);
-      else if (id === "future") showToast("Переход в 2027 открыт. Здесь появятся утверждённые планы на 2027 год.", 4200);
-    }, 260);
+      if (id === "hub") showToast("Центральный HR HUB. Выберите одно из трёх направлений: дверь открывается клавишей E или кликом.", 5200);
+      else if (data.zones[id].intro) showToast(data.zones[id].intro, 4600);
+      else if (id === "future") showToast("Переход в 2027 открыт. Здесь будут реальные планы следующего года.", 4600);
+    }, 300);
+  }
+
+  function complete(id) {
+    if (!completed.has(id)) {
+      completed.add(id);
+      updateGuide();
+      showToast(`${data.zones[id].name}: результаты подтверждены.`, 3800);
+    } else {
+      showToast(`${data.zones[id].name}: зона уже пройдена.`, 3000);
+    }
   }
 
   window.addEventListener("keydown", (e) => {
@@ -464,9 +541,9 @@
     if (nearest) {
       prompt.textContent = nearest.label;
       prompt.classList.remove("hidden");
-    } else prompt.classList.add("hidden");
-    core.rotation.y += 0.004;
-    coreRing.rotation.z += 0.003;
+    } else {
+      prompt.classList.add("hidden");
+    }
   });
 
   canvas.addEventListener("click", () => {
@@ -474,39 +551,39 @@
   });
 
   const bootLines = [
-    "HR HUB ................. READY",
-    "PROJECT ROOMS .......... 3 READY",
-    "INTERACTIVE DOORS ...... READY",
-    "RESULTS 2026 ........... WAITING",
-    "PORTAL 2027 ............ LOCKED",
+    "HR HUB ............... READY",
+    "PROJECT ZONES ........ 3 FOUND",
+    "RESULTS 2026 ......... WAITING",
+    "PORTAL 2027 .......... LOCKED",
     "",
-    "Маршрут: HR HUB → 3 проекта → 2027"
+    "ЦК БОРУП · ИТОГИ 2026"
   ];
   let bootIndex = 0;
-  const bootTimer = setInterval(() => {
+  const timer = setInterval(() => {
     bootLog.textContent += `${bootLines[bootIndex]}\n`;
     bootIndex += 1;
     if (bootIndex >= bootLines.length) {
-      clearInterval(bootTimer);
+      clearInterval(timer);
       enterButton.disabled = false;
     }
-  }, 180);
+  }, 220);
 
   enterButton.addEventListener("click", () => {
     boot.classList.add("hidden");
     hud.classList.remove("hidden");
-    camera.position.copyFrom(zones.hub.pos);
-    camera.setTarget(zones.hub.target);
+    camera.position.copyFrom(zoneMap.hub.pos);
+    camera.setTarget(zoneMap.hub.target);
     canvas.focus();
     setTimeout(() => {
       canvas.requestPointerLock?.();
-      showToast("Вы вошли в HR HUB. Двери открываются по E или кликом. За каждой дверью — отдельная проектная комната.", 5200);
+      showToast("Вы вошли в HR HUB. Осмотритесь: три проектные двери расположены слева, прямо и справа.", 5600);
     }, 220);
   });
 
   engine.runRenderLoop(() => scene.render());
   window.addEventListener("resize", () => engine.resize());
+
   if (scene.createDefaultXRExperienceAsync) {
-    scene.createDefaultXRExperienceAsync({ floorMeshes: scene.meshes.filter(m => m.name.endsWith("-floor")) }).catch(() => {});
+    scene.createDefaultXRExperienceAsync({ floorMeshes: scene.meshes.filter((m) => m.name.endsWith("-floor")) }).catch(() => {});
   }
 })();
