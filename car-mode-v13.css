@@ -1,0 +1,83 @@
+.car-hud-v13 {
+  position: fixed;
+  z-index: 22;
+  left: 18px;
+  top: 86px;
+  width: 210px;
+  padding: 12px 13px;
+  border: 1px solid rgba(255,74,96,.22);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(18,7,10,.76), rgba(7,14,20,.68));
+  backdrop-filter: blur(11px);
+  box-shadow: 0 16px 48px rgba(0,0,0,.26), 0 0 28px rgba(217,16,36,.08);
+  pointer-events: none;
+}
+.car-model span {
+  display: block;
+  font-size: 8px;
+  letter-spacing: .18em;
+  color: rgba(255,181,190,.66);
+}
+.car-model strong {
+  display: block;
+  margin-top: 3px;
+  font-size: 14px;
+  letter-spacing: .06em;
+  color: #fff;
+}
+.car-speed {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 9px;
+}
+.car-speed strong {
+  font-size: 34px;
+  line-height: .9;
+  letter-spacing: -.04em;
+  color: #ff5166;
+  text-shadow: 0 0 22px rgba(255,49,75,.28);
+}
+.car-speed span {
+  padding-bottom: 3px;
+  font-size: 9px;
+  color: rgba(238,241,244,.54);
+}
+.car-hint {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255,255,255,.055);
+  font-size: 8px;
+  line-height: 1.45;
+  color: rgba(234,241,244,.44);
+}
+
+.car-mode-v13 .controls {
+  bottom: 16px;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .car-hud-v13 {
+    left: auto;
+    right: max(10px, env(safe-area-inset-right));
+    top: calc(max(8px, env(safe-area-inset-top)) + 58px);
+    width: 142px;
+    padding: 8px 9px;
+  }
+  .car-model span { font-size: 6px; }
+  .car-model strong { font-size: 11px; }
+  .car-speed { margin-top: 6px; }
+  .car-speed strong { font-size: 25px; }
+  .car-speed span { font-size: 7px; }
+  .car-hint { display: none; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .car-hud-v13 {
+    top: 44px;
+    right: 10px;
+    width: 122px;
+    padding: 7px 8px;
+  }
+  .car-speed strong { font-size: 22px; }
+}
