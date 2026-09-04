@@ -8,7 +8,7 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>Итоги 2026 — HR Backroom Office</title>
-  <link rel="stylesheet" href="./styles.css?v=20260904-7" />
+  <link rel="stylesheet" href="./styles.css?v=20260904-8" />
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
 </head>
 <body>
@@ -26,7 +26,7 @@
   <div id="hud" class="hud hidden">
     <div class="hud-top">
       <div class="zone-card">
-        <div class="eyebrow">HR BACKROOM OFFICE · v0.7 · THIRD PERSON</div>
+        <div class="eyebrow">HR BACKROOM OFFICE · v0.8 · FOLLOW CAMERA</div>
         <div class="hud-title" id="zoneName">HR HUB · ИТОГИ 2026</div>
       </div>
       <div class="progress-card">
@@ -40,7 +40,7 @@
       <div class="guide-row" data-zone="recruitment"><span>01</span><b>ПРИЁМ</b><i>○</i></div>
       <div class="guide-row" data-zone="ai"><span>02</span><b>AI LAB</b><i>○</i></div>
       <div class="guide-row" data-zone="mentoring"><span>03</span><b>НАСТАВНИЧЕСТВО</b><i>○</i></div>
-      <div class="hub-guide-hint">Управляйте видимым персонажем стрелками. У двери нажмите <b>Enter</b> или <b>E</b>.</div>
+      <div class="hub-guide-hint">Камера всегда следует за персонажем. ↑ ↓ — движение, ← → — поворот.</div>
     </div>
 
     <div id="roomPanel" class="room-panel hidden">
@@ -53,13 +53,14 @@
     </div>
 
     <div id="interactionPrompt" class="interaction hidden">Enter — взаимодействовать</div>
-    <div class="controls">↑ ↓ — идти · ← → — поворот · Enter / E — открыть / изучить · Q — HR HUB</div>
+    <div class="controls">↑ ↓ — идти · ← → — поворот · Enter / E — открыть / изучить · Q — HR HUB · камера всегда сзади</div>
   </div>
 
   <div id="toast" class="toast hidden"></div>
   <div id="fade" class="fade"></div>
 
-  <script src="./src/data.js?v=20260904-7"></script>
-  <script src="./src/app-v07.js?v=20260904-7"></script>
+  <script src="./src/data.js?v=20260904-8"></script>
+  <script src="./src/app-v07.js?v=20260904-8"></script>
+  <script src="./src/camera-follow-v08.js?v=20260904-8"></script>
 </body>
 </html>
