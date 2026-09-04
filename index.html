@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#071019" />
+  <title>Итоги 2026 — Backroom Office</title>
+  <link rel="stylesheet" href="./styles.css" />
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+</head>
+<body>
+  <canvas id="renderCanvas" aria-label="Виртуальное пространство Итоги 2026"></canvas>
+
+  <div id="boot" class="overlay boot">
+    <div class="boot-card">
+      <div class="eyebrow">ЦК БОРУЛ</div>
+      <h1>ИТОГИ 2026</h1>
+      <div class="terminal" id="bootLog"></div>
+      <button id="enterButton" class="primary" disabled>ВОЙТИ</button>
+    </div>
+  </div>
+
+  <div id="hud" class="hud hidden">
+    <div class="hud-top">
+      <div>
+        <div class="eyebrow">BACKROOM OFFICE</div>
+        <div class="hud-title" id="zoneName">HR HUB</div>
+      </div>
+      <div class="progress-card">
+        <span>RESULTS VERIFIED</span>
+        <strong id="progressText">0 / 3</strong>
+      </div>
+    </div>
+    <div id="crosshair" class="crosshair">+</div>
+    <div id="interactionPrompt" class="interaction hidden">E — взаимодействовать</div>
+    <div class="controls">WASD — движение · мышь — обзор · E — действие · ESC — отпустить курсор</div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <div id="fade" class="fade"></div>
+
+  <script src="./src/data.js"></script>
+  <script src="./src/app.js"></script>
+</body>
+</html>
