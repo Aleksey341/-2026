@@ -1,0 +1,98 @@
+.track-hud-v14 {
+  --track-accent: #53d9ff;
+  position: fixed;
+  z-index: 23;
+  left: 50%;
+  top: 18px;
+  transform: translateX(-50%);
+  min-width: 330px;
+  max-width: min(560px, calc(100vw - 280px));
+  padding: 10px 14px 9px;
+  border: 1px solid color-mix(in srgb, var(--track-accent) 36%, transparent);
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(3,11,18,.82), rgba(9,24,34,.66));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 18px 54px rgba(0,0,0,.30), 0 0 26px color-mix(in srgb, var(--track-accent) 10%, transparent);
+  pointer-events: none;
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.track-hud-v14.near {
+  transform: translateX(-50%) scale(1.025);
+  border-color: color-mix(in srgb, var(--track-accent) 70%, transparent);
+  box-shadow: 0 18px 58px rgba(0,0,0,.34), 0 0 34px color-mix(in srgb, var(--track-accent) 20%, transparent);
+}
+.track-hud-kicker {
+  font-size: 7px;
+  letter-spacing: .2em;
+  color: color-mix(in srgb, var(--track-accent) 78%, white 22%);
+}
+.track-hud-main {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  margin-top: 3px;
+}
+.track-hud-main span {
+  min-width: 34px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .08em;
+  color: var(--track-accent);
+}
+.track-hud-main strong {
+  font-size: 15px;
+  line-height: 1.05;
+  letter-spacing: .02em;
+}
+.track-hud-sub {
+  margin-top: 4px;
+  font-size: 9px;
+  line-height: 1.35;
+  color: rgba(228,242,248,.56);
+}
+
+.future-track-v14 .zone-card {
+  border-color: rgba(104,222,255,.16);
+  background: rgba(3,11,18,.44);
+}
+.future-track-v14 .hub-guide {
+  background: rgba(3,11,18,.50);
+}
+.future-track-v14 .progress-card {
+  background: rgba(3,11,18,.48);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .track-hud-v14 {
+    top: max(8px, env(safe-area-inset-top));
+    min-width: 0;
+    width: min(310px, 54vw);
+    max-width: 54vw;
+    padding: 7px 9px 6px;
+  }
+  .track-hud-kicker { font-size: 6px; letter-spacing: .14em; }
+  .track-hud-main { gap: 6px; margin-top: 2px; }
+  .track-hud-main span { min-width: 28px; font-size: 9px; }
+  .track-hud-main strong { font-size: 11px; }
+  .track-hud-sub { font-size: 7px; margin-top: 2px; }
+}
+
+@media (max-width: 760px) {
+  .track-hud-v14 {
+    left: 50%;
+    width: 48vw;
+    max-width: 48vw;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .track-hud-v14 {
+    top: 6px;
+    width: 40vw;
+    max-width: 40vw;
+    padding: 5px 7px;
+  }
+  .track-hud-kicker { display: none; }
+  .track-hud-main strong { font-size: 10px; }
+  .track-hud-sub { display: none; }
+}
