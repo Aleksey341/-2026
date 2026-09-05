@@ -1,0 +1,137 @@
+.auto-presentation-v28 .boot-card {
+  width: min(760px, calc(100vw - 36px));
+}
+
+.v28-mode-note {
+  margin: 14px 0 10px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: rgba(225,240,246,.62);
+  text-align: center;
+}
+
+.v28-mode-row {
+  display: grid;
+  grid-template-columns: 1.25fr .95fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.v28-mode-row .primary,
+.v28-mode-row .v28-manual-button {
+  width: 100%;
+  min-height: 58px;
+  border-radius: 0;
+  letter-spacing: .08em;
+  font-weight: 800;
+}
+.v28-manual-button {
+  border: 1px solid rgba(105,224,255,.28);
+  background: rgba(5,17,25,.58);
+  color: #d9f6ff;
+  cursor: pointer;
+}
+.v28-manual-button:hover {
+  background: rgba(14,42,55,.72);
+}
+
+.v28-presenter {
+  position: fixed;
+  z-index: 37;
+  left: 18px;
+  bottom: 62px;
+  display: none;
+  grid-template-columns: minmax(190px, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  width: min(560px, calc(100vw - 36px));
+  padding: 9px 10px;
+  border: 1px solid rgba(104,226,255,.23);
+  background: linear-gradient(135deg, rgba(4,12,19,.86), rgba(8,24,33,.76));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 16px 52px rgba(0,0,0,.34), 0 0 28px rgba(86,220,255,.07);
+}
+.v28-auto-active .v28-presenter {
+  display: grid;
+}
+.v28-presenter-copy {
+  min-width: 0;
+}
+.v28-presenter-copy span {
+  display: block;
+  font-size: 7px;
+  letter-spacing: .18em;
+  color: rgba(173,229,244,.52);
+}
+.v28-presenter-copy strong {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 11px;
+  letter-spacing: .035em;
+  color: #eefbff;
+}
+.v28-presenter button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid rgba(108,225,255,.22);
+  background: rgba(7,20,28,.72);
+  color: #dff8ff;
+  font: inherit;
+  font-size: 8px;
+  letter-spacing: .08em;
+  cursor: pointer;
+}
+.v28-presenter button:hover {
+  border-color: rgba(108,225,255,.46);
+  background: rgba(15,42,54,.78);
+}
+.v28-presenter .v28-stop-auto {
+  border-color: rgba(255,198,109,.24);
+  color: #ffdca1;
+}
+
+.v28-auto-active .controls,
+.v28-auto-active .car-hint {
+  opacity: .18;
+  transition: opacity .25s ease;
+}
+
+.v28-auto-paused .v28-presenter {
+  border-color: rgba(255,198,109,.38);
+  box-shadow: 0 16px 52px rgba(0,0,0,.34), 0 0 32px rgba(255,198,109,.09);
+}
+.v28-auto-paused .v28-toggle-auto {
+  color: #ffdca1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .v28-mode-row {
+    grid-template-columns: 1fr;
+  }
+  .v28-presenter {
+    left: 10px;
+    bottom: max(164px, calc(env(safe-area-inset-bottom) + 152px));
+    width: calc(100vw - 20px);
+    grid-template-columns: 1fr auto;
+  }
+  .v28-presenter .v28-stop-auto {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .v28-mode-note { display: none; }
+  .v28-mode-row .primary,
+  .v28-mode-row .v28-manual-button { min-height: 44px; }
+  .v28-presenter {
+    left: 8px;
+    bottom: 8px;
+    width: min(500px, 58vw);
+    padding: 6px 7px;
+  }
+  .v28-presenter-copy span { font-size: 6px; }
+  .v28-presenter-copy strong { font-size: 9px; }
+  .v28-presenter button { min-height: 28px; font-size: 7px; }
+}
