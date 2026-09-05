@@ -1,0 +1,181 @@
+.story-districts-v17 .zone-card .eyebrow {
+  color: #9be8fb;
+}
+
+.v17-next-gate {
+  --v17-accent: #59ddff;
+  position: fixed;
+  z-index: 25;
+  left: 50%;
+  bottom: 54px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: 34px minmax(150px, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: min(430px, calc(100vw - 40px));
+  padding: 9px 12px;
+  border: 1px solid color-mix(in srgb, var(--v17-accent) 34%, transparent);
+  border-radius: 11px;
+  background: linear-gradient(135deg, rgba(4,10,17,.74), rgba(7,19,28,.63));
+  backdrop-filter: blur(12px);
+  box-shadow: 0 14px 46px rgba(0,0,0,.30), 0 0 28px color-mix(in srgb, var(--v17-accent) 9%, transparent);
+  pointer-events: none;
+  transition: border-color .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.v17-next-gate.near {
+  transform: translateX(-50%) scale(1.025);
+  box-shadow: 0 16px 52px rgba(0,0,0,.34), 0 0 42px color-mix(in srgb, var(--v17-accent) 18%, transparent);
+}
+.v17-nav-arrow {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--v17-accent) 50%, transparent);
+  color: var(--v17-accent);
+  background: color-mix(in srgb, var(--v17-accent) 9%, transparent);
+  font-size: 12px;
+  text-shadow: 0 0 14px var(--v17-accent);
+}
+.v17-nav-copy {
+  min-width: 0;
+}
+.v17-nav-copy span {
+  display: block;
+  font-size: 7px;
+  letter-spacing: .18em;
+  color: rgba(203,230,239,.48);
+}
+.v17-nav-copy strong {
+  display: block;
+  margin-top: 2px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+  letter-spacing: .03em;
+}
+.v17-nav-distance {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+}
+.v17-nav-distance b {
+  font-size: 23px;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 0 20px color-mix(in srgb, var(--v17-accent) 28%, transparent);
+}
+.v17-nav-distance span {
+  font-size: 8px;
+  color: rgba(223,238,243,.48);
+}
+
+.v17-district-banner {
+  --v17-accent: #59ddff;
+  position: fixed;
+  z-index: 29;
+  left: 50%;
+  top: 26%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  width: min(630px, calc(100vw - 44px));
+  padding: 15px 18px;
+  border-left: 3px solid var(--v17-accent);
+  border-top: 1px solid color-mix(in srgb, var(--v17-accent) 25%, transparent);
+  border-bottom: 1px solid rgba(255,255,255,.05);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--v17-accent) 11%, rgba(3,9,15,.94)), rgba(3,9,15,.68));
+  backdrop-filter: blur(14px);
+  box-shadow: 0 24px 80px rgba(0,0,0,.40), 0 0 50px color-mix(in srgb, var(--v17-accent) 10%, transparent);
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity .22s ease, transform .22s ease;
+}
+.v17-district-banner.hidden {
+  opacity: 0;
+  transform: translate(-50%, -43%);
+}
+.v17-district-banner > span {
+  flex: 0 0 auto;
+  min-width: 58px;
+  font-size: 26px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -.03em;
+  color: var(--v17-accent);
+  text-shadow: 0 0 22px color-mix(in srgb, var(--v17-accent) 36%, transparent);
+}
+.v17-district-banner div {
+  min-width: 0;
+}
+.v17-district-banner small {
+  display: block;
+  font-size: 8px;
+  letter-spacing: .22em;
+  color: rgba(210,230,237,.48);
+}
+.v17-district-banner strong {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: clamp(20px, 4vw, 36px);
+  line-height: 1;
+  letter-spacing: -.025em;
+}
+.v17-district-banner i {
+  display: block;
+  margin-top: 6px;
+  font-size: 9px;
+  font-style: normal;
+  letter-spacing: .12em;
+  color: var(--v17-accent);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .v17-next-gate {
+    bottom: max(154px, calc(env(safe-area-inset-bottom) + 142px));
+    width: min(390px, calc(100vw - 28px));
+    grid-template-columns: 30px minmax(120px, 1fr) auto;
+    padding: 7px 9px;
+  }
+  .v17-nav-arrow { width: 28px; height: 28px; }
+  .v17-nav-copy span { font-size: 6px; }
+  .v17-nav-copy strong { font-size: 10px; }
+  .v17-nav-distance b { font-size: 19px; }
+  .v17-district-banner {
+    top: 31%;
+    width: min(520px, calc(100vw - 24px));
+    padding: 11px 12px;
+    gap: 10px;
+  }
+  .v17-district-banner > span { min-width: 45px; font-size: 21px; }
+  .v17-district-banner small { font-size: 6px; }
+  .v17-district-banner strong { font-size: 20px; }
+  .v17-district-banner i { font-size: 7px; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .v17-next-gate {
+    left: 50%;
+    bottom: 12px;
+    width: 330px;
+    padding: 6px 8px;
+  }
+  .v17-nav-arrow { width: 26px; height: 26px; }
+  .v17-nav-distance b { font-size: 17px; }
+  .v17-district-banner {
+    top: 26%;
+    width: min(500px, 60vw);
+    padding: 8px 10px;
+  }
+  .v17-district-banner > span { font-size: 18px; }
+  .v17-district-banner strong { font-size: 17px; }
+  .v17-district-banner i { display: none; }
+}
