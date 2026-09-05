@@ -1,0 +1,122 @@
+.v21-vr-chip {
+  position: fixed;
+  z-index: 42;
+  right: 18px;
+  top: 18px;
+  min-width: 168px;
+  padding: 9px 12px 10px;
+  border: 1px solid rgba(88,221,255,.28);
+  border-radius: 10px;
+  background: linear-gradient(145deg, rgba(3,10,17,.88), rgba(7,24,34,.76));
+  color: #eafaff;
+  box-shadow: 0 12px 42px rgba(0,0,0,.30), 0 0 26px rgba(88,221,255,.08);
+  backdrop-filter: blur(12px);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.v21-vr-chip span,
+.v21-vr-chip i {
+  display: block;
+  font-size: 7px;
+  font-style: normal;
+  letter-spacing: .18em;
+  color: rgba(203,235,244,.55);
+}
+.v21-vr-chip strong {
+  display: block;
+  margin: 3px 0 2px;
+  font-size: 12px;
+  letter-spacing: .055em;
+  color: #58ddff;
+}
+.v21-vr-chip.ready {
+  border-color: rgba(88,221,255,.46);
+  box-shadow: 0 12px 42px rgba(0,0,0,.30), 0 0 30px rgba(88,221,255,.13);
+}
+.v21-vr-chip.ready strong { color: #8deaff; }
+.v21-vr-chip.active {
+  border-color: rgba(98,228,187,.54);
+  background: linear-gradient(145deg, rgba(3,17,14,.90), rgba(5,31,27,.78));
+}
+.v21-vr-chip.active strong { color: #62e4bb; }
+.v21-vr-chip.unsupported,
+.v21-vr-chip.error {
+  opacity: .68;
+  cursor: default;
+  border-color: rgba(255,255,255,.10);
+}
+.v21-vr-chip.unsupported strong { color: rgba(231,241,245,.56); }
+.v21-vr-chip.error strong { color: #ff7a8f; }
+.v21-vr-chip.checking { cursor: progress; }
+
+.v21-vr-help {
+  position: fixed;
+  z-index: 41;
+  right: 18px;
+  top: 96px;
+  width: 230px;
+  padding: 9px 11px;
+  border: 1px solid rgba(98,228,187,.15);
+  border-radius: 9px;
+  background: rgba(3,12,18,.68);
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity .22s ease, transform .22s ease;
+}
+.v21-vr-help.active { opacity: 1; transform: translateY(0); }
+.v21-vr-help span,
+.v21-vr-help b,
+.v21-vr-help i { display: block; }
+.v21-vr-help span {
+  font-size: 7px;
+  letter-spacing: .18em;
+  color: #62e4bb;
+}
+.v21-vr-help b {
+  margin-top: 4px;
+  font-size: 10px;
+  color: #f3fdff;
+}
+.v21-vr-help i {
+  margin-top: 3px;
+  font-size: 8px;
+  font-style: normal;
+  color: rgba(226,242,247,.56);
+}
+
+.xr-active-v21 .v20-director-chip,
+.xr-active-v21 .v18-camera-chip {
+  opacity: .24;
+  pointer-events: none;
+}
+.xr-active-v21 .v21-vr-chip {
+  border-color: rgba(98,228,187,.50);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .v21-vr-chip {
+    right: max(8px, env(safe-area-inset-right));
+    top: max(8px, env(safe-area-inset-top));
+    min-width: 138px;
+    padding: 7px 9px 8px;
+  }
+  .v21-vr-chip strong { font-size: 10px; }
+  .v21-vr-help {
+    right: max(8px, env(safe-area-inset-right));
+    top: 74px;
+    width: 188px;
+  }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .v21-vr-chip {
+    top: 6px;
+    right: 8px;
+    min-width: 128px;
+    padding: 6px 8px;
+  }
+  .v21-vr-help { display: none; }
+}
