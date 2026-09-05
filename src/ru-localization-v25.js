@@ -9,6 +9,9 @@
     ["DIRECTOR", "РЕЖИССЁР"],
     ["SPATIAL DATA", "ДАННЫЕ В ПРОСТРАНСТВЕ"],
     ["QUEST", "ШЛЕМ"],
+    ["WEBXR", "ВИРТУАЛЬНАЯ РЕАЛЬНОСТЬ"],
+    ["VR", "ВИРТУАЛЬНАЯ РЕАЛЬНОСТЬ"],
+    ["KPI", "ПОКАЗАТЕЛИ"],
     ["M", "М"],
     ["KM/H", "КМ/Ч"],
     ["KPH", "КМ/Ч"],
@@ -28,8 +31,8 @@
     ["AMBIENT SOUND", "АТМОСФЕРНЫЙ ЗВУК"],
     ["MELODIC SOUND", "МЕЛОДИЧНЫЙ ЗВУК"],
     ["CLEAN HUD", "ЧИСТЫЙ ИНТЕРФЕЙС"],
-    ["DIRECTOR + 3D KPI", "РЕЖИССЁР + 3D-ПОКАЗАТЕЛИ"],
-    ["3D KPI", "3D-ПОКАЗАТЕЛИ"],
+    ["DIRECTOR + 3D KPI", "РЕЖИССЁР + ОБЪЁМНЫЕ ПОКАЗАТЕЛИ"],
+    ["3D KPI", "ОБЪЁМНЫЕ ПОКАЗАТЕЛИ"],
     ["DEMO DATA 2025", "ДЕМО-ДАННЫЕ 2025"],
     ["DEMO 2025 · SPATIAL KPI", "ДЕМО 2025 · ПРОСТРАНСТВЕННЫЕ ПОКАЗАТЕЛИ"],
     ["RESULT GATE", "ТОЧКА РЕЗУЛЬТАТОВ"],
@@ -37,8 +40,8 @@
     ["DATA GATE", "ТОЧКА ДАННЫХ"],
     ["SPATIAL KPI", "ПРОСТРАНСТВЕННЫЕ ПОКАЗАТЕЛИ"],
     ["SPATIAL DATA", "ДАННЫЕ В ПРОСТРАНСТВЕ"],
-    ["3D STORY MODE", "3D-СЦЕНАРИЙ"],
-    ["3D STAGE", "3D-СЦЕНА"],
+    ["3D STORY MODE", "ОБЪЁМНЫЙ СЦЕНАРИЙ"],
+    ["3D STAGE", "ОБЪЁМНАЯ СЦЕНА"],
     ["AUTO DIRECTOR", "АВТОРЕЖИССЁР"],
     ["NEON CITY", "НЕОНОВЫЙ ГОРОД"],
     ["SERVICE TUNNEL", "СЕРВИСНЫЙ ТОННЕЛЬ"],
@@ -52,11 +55,13 @@
     ["VR COCKPIT", "КАБИНА ВИРТУАЛЬНОЙ РЕАЛЬНОСТИ"],
     ["VR DRIVE", "МАРШРУТ В ВИРТУАЛЬНОЙ РЕАЛЬНОСТИ"],
     ["WEBXR COCKPIT", "РЕЖИМ ВИРТУАЛЬНОЙ РЕАЛЬНОСТИ"],
-    ["WEBXR", "VR"],
+    ["WEBXR", "ВИРТУАЛЬНАЯ РЕАЛЬНОСТЬ"],
+    ["VR", "ВИРТУАЛЬНАЯ РЕАЛЬНОСТЬ"],
     ["COCKPIT", "КАБИНА"],
     ["AI AGENT", "ИИ-АГЕНТ"],
     ["HR AI CORE", "ЯДРО ИИ"],
     ["AI CORE", "ЯДРО ИИ"],
+    ["HR-КОНВЕРГЕНТ", "КАДРОВЫЙ КОНВЕРГЕНТ"],
     ["320 M READY", "320 М ГОТОВО"],
     ["/ 320 M", "/ 320 М"],
     ["/320 M", "/320 М"],
@@ -81,7 +86,6 @@
     return out;
   }
 
-  // Translate all text drawn onto Babylon DynamicTexture canvases before those textures are created.
   try {
     const proto = window.CanvasRenderingContext2D?.prototype;
     if (proto && !proto.__ruV25FillText) {
@@ -98,8 +102,6 @@
     const parent = node.parentElement;
     if (!parent) return;
 
-    // Director state is read programmatically as ON/OFF by the VR module.
-    // Keep the internal value unchanged and only replace its visual rendering.
     if (parent.matches(".v20-director-chip strong")) {
       const raw = String(node.nodeValue || "").trim();
       if (raw === "ON" || raw === "ВКЛ") parent.dataset.ruState = "ВКЛ";
@@ -156,8 +158,6 @@
     });
     observer.observe(document.body, { subtree: true, childList: true, characterData: true });
 
-    // Some HUD elements are rewritten every animation frame. A light periodic pass
-    // guarantees Russian labels even when another module replaces the same node later.
     const selectors = [
       ".car-hud-v13", ".v16-route-hud", ".v16-data-card", ".v18-camera-chip",
       ".v18-next-card", ".v19-mode", ".v20-shot-label", ".v20-director-chip",
