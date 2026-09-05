@@ -62,6 +62,17 @@
     return Number.isFinite(n) ? n : 0;
   }
 
+  // v16 выводит расстояние на экран округлённым целым числом. Для автопилота это
+  // недостаточно: на точке 165 м отображаемое значение уже равно 165, хотя машина
+  // физически может находиться чуть раньше контрольной отметки. Берём точную дистанцию
+  // из ширины progress bar и только при отсутствии данных используем текстовый счётчик.
+  function readDistancePrecise() {
+    const bar = document.getElementById("v16ProgressBar");
+    const pct = parseFloat(bar?.style?.width || "");
+    if (Number.isFinite(pct)) return BABYLON.Scalar.Clamp(pct, 0, 100) * 3.2;
+    return readNumber("v16Distance");
+  }
+
   function pathX(d) {
     return Math.sin(d / 47) * 1.55 + Math.sin(d / 19) * 0.48;
   }
@@ -95,7 +106,9 @@
 
   let active = false;
   let userPaused = false;
+  let userPauseStartedAt = 0;
   let phase = "idle";
+  let phaseStartedAt = 0;
   let nextGateIndex = 0;
   let pauseUntil = 0;
   let loopTimer = null;
@@ -104,6 +117,11 @@
 
   function setStatus(text) {
     if (statusEl) statusEl.textContent = text;
+  }
+
+  function setPhase(next) {
+    phase = next;
+    phaseStartedAt = performance.now();
   }
 
   function ensureDirectorOn() {
@@ -138,7 +156,7 @@
   }
 
   function beginCruise() {
-    phase = "cruise";
+    setPhase("cruise");
     release("Space");
     release("KeyS");
     hold("KeyW");
@@ -147,7 +165,7 @@
   }
 
   function beginPause(gate) {
-    phase = gate.final ? "final" : "pause";
+    setPhase(gate.final ? "final" : "pause");
     release("KeyW");
     release("KeyA");
     release("KeyD");
@@ -163,18 +181,25 @@
     }
   }
 
+  function resumeAfterGate() {
+    nextGateIndex += 1;
+    tap("KeyV");
+    beginCruise();
+  }
+
   function autoStep() {
     if (!active) return;
 
-    const distance = readNumber("v16Distance");
+    const distance = readDistancePrecise();
     const speedKmh = readNumber("v13Speed");
+    const now = performance.now();
 
     if (userPaused) {
       release("KeyW");
       release("KeyA");
       release("KeyD");
       hold("Space");
-      setStatus("Презентация приостановлена");
+      setStatus("Презентация приостановлена пользователем");
       return;
     }
 
@@ -187,10 +212,10 @@
 
     if (phase === "pause") {
       hold("Space");
-      if (performance.now() >= pauseUntil) {
-        nextGateIndex += 1;
-        tap("KeyV");
-        beginCruise();
+      // Основной таймер + страховочный watchdog. Даже при фоновой вкладке или
+      // пропущенном тике презентация гарантированно продолжится.
+      if (now >= pauseUntil || now - phaseStartedAt >= gate.pause + 1800) {
+        resumeAfterGate();
       }
       return;
     }
@@ -206,14 +231,12 @@
     steerAutomatically(distance);
 
     if (phase === "cruise") {
-      // Рассчитываем точку начала торможения по фактической скорости.
-      // Так автомобиль проходит контрольную отметку и останавливается сразу за ней.
       const localSpeed = Math.max(0, speedKmh / 18);
       const virtualStopDistance = (localSpeed * localSpeed / (2 * 10.5)) * 1.55;
       const brakeStart = gate.d + 1.25 - virtualStopDistance;
 
       if (distance >= brakeStart) {
-        phase = "brake";
+        setPhase("brake");
         release("KeyW");
         hold("Space");
         setStatus(`Подъезд к блоку: ${gate.title}`);
@@ -224,8 +247,12 @@
     }
 
     if (phase === "brake") {
-      if (distance < gate.d && speedKmh < 6) {
-        // Если торможение началось слишком рано, аккуратно дотягиваем автомобиль до точки.
+      const stopTarget = gate.d + (gate.final ? 0.18 : 0.10);
+
+      // Если машина остановилась на несколько сантиметров раньше контрольной точки,
+      // мягко дотягиваем её вперёд. Раньше здесь использовалось округлённое расстояние,
+      // из-за чего на 165 м возникал вечный стоп.
+      if (distance < stopTarget && speedKmh < 5) {
         release("Space");
         hold("KeyW");
       } else {
@@ -233,7 +260,18 @@
         hold("Space");
       }
 
-      if (distance >= gate.d + 0.05 && speedKmh <= 7) beginPause(gate);
+      if (distance >= gate.d + 0.02 && speedKmh <= 7) {
+        beginPause(gate);
+        return;
+      }
+
+      // Дополнительная страховка: если тормозная фаза длится слишком долго,
+      // разрешаем короткое движение вперёд вместо вечного удержания тормоза.
+      if (now - phaseStartedAt > 6500 && speedKmh <= 1 && distance < gate.d + 0.25) {
+        release("Space");
+        hold("KeyW");
+        setStatus(`Точная доводка к блоку: ${gate.title}`);
+      }
     }
   }
 
@@ -241,11 +279,12 @@
     if (active) return;
     active = true;
     userPaused = false;
+    userPauseStartedAt = 0;
     document.body.classList.add("v28-auto-active");
     document.body.classList.remove("v28-auto-paused");
     pauseButton.textContent = "ПАУЗА";
 
-    const distance = readNumber("v16Distance");
+    const distance = readDistancePrecise();
     const found = gates.findIndex(g => g.d > distance + 0.2);
     nextGateIndex = found >= 0 ? found : gates.length - 1;
 
@@ -253,27 +292,49 @@
     beginCruise();
     loopTimer = window.setInterval(autoStep, 70);
 
-    window.dispatchEvent(new CustomEvent("hr-auto-presentation-start", { detail: { version: "2.8" } }));
+    window.dispatchEvent(new CustomEvent("hr-auto-presentation-start", { detail: { version: "2.8.1" } }));
   }
 
   function stopAuto() {
     active = false;
     userPaused = false;
-    phase = "idle";
+    userPauseStartedAt = 0;
+    setPhase("idle");
     if (loopTimer) window.clearInterval(loopTimer);
     loopTimer = null;
     releaseDrivingKeys();
     document.body.classList.remove("v28-auto-active", "v28-auto-paused");
     setStatus("Ручное управление");
-    window.dispatchEvent(new CustomEvent("hr-auto-presentation-stop", { detail: { version: "2.8" } }));
+    window.dispatchEvent(new CustomEvent("hr-auto-presentation-stop", { detail: { version: "2.8.1" } }));
   }
 
   function togglePause() {
     if (!active) return;
+    const now = performance.now();
     userPaused = !userPaused;
     document.body.classList.toggle("v28-auto-paused", userPaused);
     pauseButton.textContent = userPaused ? "ПРОДОЛЖИТЬ" : "ПАУЗА";
-    if (!userPaused && phase === "cruise") hold("KeyW");
+
+    if (userPaused) {
+      userPauseStartedAt = now;
+      release("KeyW");
+      hold("Space");
+      setStatus("Презентация приостановлена пользователем");
+      return;
+    }
+
+    // Не учитываем время ручной паузы в длительности режиссёрской остановки.
+    if (phase === "pause" && Number.isFinite(pauseUntil) && userPauseStartedAt) {
+      pauseUntil += now - userPauseStartedAt;
+      setStatus(`Показ результатов: ${gates[nextGateIndex]?.title || "блок"}`);
+    } else if (phase === "brake") {
+      setStatus(`Подъезд к блоку: ${gates[nextGateIndex]?.title || "блок"}`);
+    } else if (phase === "cruise") {
+      const next = gates[nextGateIndex];
+      if (next) setStatus(`Следующий блок: ${next.title}`);
+      hold("KeyW");
+    }
+    userPauseStartedAt = 0;
   }
 
   pauseButton.addEventListener("click", togglePause);
@@ -314,16 +375,15 @@
     });
   }
 
-  // grand-route-v16 переписывает текст стартовой кнопки через 1.2 сек., поэтому
-  // устанавливаем выбор режима сразу после его загрузочной последовательности.
   window.setTimeout(setupModeChooser, 1450);
 
   window.__HR_AUTO_PRESENTATION_V28__ = {
-    version: "2.8",
+    version: "2.8.1",
     start: startAuto,
     stop: stopAuto,
     togglePause,
     get active() { return active; },
-    get phase() { return phase; }
+    get phase() { return phase; },
+    get distance() { return readDistancePrecise(); }
   };
 })();
