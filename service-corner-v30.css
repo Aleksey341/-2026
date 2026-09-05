@@ -1,8 +1,10 @@
 .v30-service-dock {
   position: fixed;
   z-index: 58;
-  top: 14px;
-  right: 14px;
+  left: 14px;
+  bottom: 14px;
+  top: auto;
+  right: auto;
   width: 224px;
   max-height: calc(100vh - 28px);
   display: flex;
@@ -177,13 +179,15 @@
 .boot:not(.hidden) ~ .v30-service-dock {
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-8px);
+  transform: translateY(8px);
 }
 
 @media (hover: none), (pointer: coarse) {
   .v30-service-dock {
-    top: max(8px, env(safe-area-inset-top));
-    right: max(8px, env(safe-area-inset-right));
+    left: max(8px, env(safe-area-inset-left));
+    bottom: max(8px, env(safe-area-inset-bottom));
+    top: auto;
+    right: auto;
     width: 186px;
     max-height: calc(100vh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
     gap: 5px;
@@ -199,8 +203,10 @@
 
 @media (max-height: 520px) and (orientation: landscape) {
   .v30-service-dock {
-    top: 8px;
-    right: 8px;
+    left: 8px;
+    bottom: 8px;
+    top: auto;
+    right: auto;
     width: 170px;
     max-height: calc(100vh - 16px);
   }
