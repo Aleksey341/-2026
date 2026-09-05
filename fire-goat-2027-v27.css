@@ -1,0 +1,113 @@
+.fire-goat-2027-v27 .v18-portal-overlay {
+  background:
+    radial-gradient(circle at 50% 46%, rgba(255,105,45,.13), transparent 24%),
+    radial-gradient(circle at 50% 56%, rgba(255,195,103,.07), transparent 38%);
+}
+
+.fire-goat-2027-v27 .v18-cinema-bar {
+  background: linear-gradient(90deg, #050202, #0b0404 45%, #050202);
+}
+
+.fire-goat-2027-v27 .v18-portal-copy {
+  top: 44%;
+  width: min(760px, calc(100vw - 44px));
+  text-shadow: 0 0 34px rgba(255,112,53,.18);
+}
+
+.fire-goat-2027-v27 .v18-portal-copy span {
+  font-size: 9px;
+  letter-spacing: .23em;
+  color: rgba(255,204,132,.78);
+}
+
+.fire-goat-2027-v27 .v18-portal-copy strong {
+  margin-top: 8px;
+  font-size: clamp(78px, 12vw, 148px);
+  line-height: .86;
+  color: #fff1df;
+  text-shadow:
+    0 0 18px rgba(255,242,221,.30),
+    0 0 46px rgba(255,109,45,.42),
+    0 0 100px rgba(255,183,83,.18);
+}
+
+.fire-goat-2027-v27 .v18-portal-copy b {
+  margin-top: 12px;
+  font-size: clamp(18px, 2.5vw, 29px);
+  letter-spacing: .15em;
+  color: #ffc86a;
+  text-shadow: 0 0 28px rgba(255,117,49,.30);
+}
+
+.fire-goat-2027-v27 .v18-portal-copy i {
+  margin-top: 9px;
+  font-size: 11px;
+  letter-spacing: .07em;
+  color: rgba(255,230,205,.62);
+}
+
+.fire-goat-2027-v27 .v18-flash.v27-warm-flash {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255,248,232,.96), rgba(255,193,97,.70) 14%, rgba(255,92,37,.34) 34%, transparent 68%);
+}
+
+/* During the final approach, existing violet interface accents become warm and ceremonial. */
+.fire-goat-2027-v27.v27-final-active .v16-route-hud {
+  --route-accent: #ffc86a;
+  border-color: rgba(255,191,98,.24);
+  box-shadow: 0 16px 54px rgba(0,0,0,.30), 0 0 38px rgba(255,108,45,.10);
+}
+
+.fire-goat-2027-v27.v27-final-active .v16-route-progress b {
+  background: linear-gradient(90deg, #ff4f24, #ff7a2f 45%, #ffc86a 100%);
+  box-shadow: 0 0 18px rgba(255,113,44,.42);
+}
+
+.fire-goat-2027-v27.v27-final-active .v17-next-gate {
+  --v17-accent: #ffc86a !important;
+  border-color: rgba(255,196,103,.36);
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255,91,38,.10), transparent 44%),
+    linear-gradient(135deg, rgba(18,6,7,.84), rgba(38,8,8,.66));
+  box-shadow: 0 16px 52px rgba(0,0,0,.35), 0 0 38px rgba(255,111,44,.14);
+}
+
+.fire-goat-2027-v27.v27-final-active .v18-camera-chip,
+.fire-goat-2027-v27.v27-final-active .v20-director-chip,
+.fire-goat-2027-v27.v27-final-active .v19-mode {
+  border-color: rgba(255,190,101,.22);
+  box-shadow: 0 12px 38px rgba(0,0,0,.24), 0 0 24px rgba(255,114,46,.06);
+}
+
+/* Keep the final title cinematic, but leave enough of the 3D pavilion visible. */
+.fire-goat-2027-v27 .v18-portal-overlay.complete .v18-cinema-bar {
+  height: 7.5vh;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .fire-goat-2027-v27 .v18-portal-copy {
+    top: 42%;
+    width: min(600px, calc(100vw - 24px));
+  }
+  .fire-goat-2027-v27 .v18-portal-copy span { font-size: 7px; }
+  .fire-goat-2027-v27 .v18-portal-copy strong { font-size: clamp(62px, 16vw, 112px); }
+  .fire-goat-2027-v27 .v18-portal-copy b { font-size: 16px; }
+  .fire-goat-2027-v27 .v18-portal-copy i { font-size: 9px; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .fire-goat-2027-v27 .v18-portal-copy {
+    top: 45%;
+  }
+  .fire-goat-2027-v27 .v18-portal-copy strong {
+    font-size: min(22vh, 104px);
+  }
+  .fire-goat-2027-v27 .v18-portal-copy b {
+    margin-top: 7px;
+    font-size: 13px;
+  }
+  .fire-goat-2027-v27 .v18-portal-overlay.active .v18-cinema-bar,
+  .fire-goat-2027-v27 .v18-portal-overlay.complete .v18-cinema-bar {
+    height: 5vh;
+  }
+}
