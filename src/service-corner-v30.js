@@ -4,7 +4,6 @@
 
     const carHud = document.querySelector(".car-hud-v13");
     const camera = document.querySelector(".v18-camera-chip");
-    const spatial = document.querySelector(".v19-mode");
     const director = document.querySelector(".v20-director-chip");
     const vr = document.querySelector(".v21-vr-chip");
     const vrHelp = document.querySelector(".v21-vr-help");
@@ -12,7 +11,7 @@
 
     // Базовые элементы создаются разными скриптами. Ждём, пока они появятся,
     // чтобы собрать их в один сервисный угол без дублирования по экрану.
-    if (!carHud || !camera || !spatial || !director || !vr || !presenter) {
+    if (!carHud || !camera || !director || !vr || !presenter) {
       window.setTimeout(installServiceCorner, 120);
       return;
     }
@@ -23,7 +22,7 @@
 
     const head = document.createElement("div");
     head.className = "v30-service-head";
-    head.innerHTML = '<span>СЕРВИС</span><b>v3.0.1</b>';
+    head.innerHTML = '<span>СЕРВИС</span><b>v3.1</b>';
 
     const collapse = document.createElement("button");
     collapse.type = "button";
@@ -33,13 +32,16 @@
     head.appendChild(collapse);
     dock.appendChild(head);
 
-    // Порядок: статус автомобиля → автопрезентация → камера → режиссёр →
-    // пространственные данные → VR. Всё живёт в одном углу.
-    [carHud, presenter, camera, director, spatial, vr].forEach(el => dock.appendChild(el));
+    // Порядок: статус автомобиля → автопрезентация → камера → режиссёр → VR.
+    // Пространственные показатели полностью исключены из интерфейса.
+    [carHud, presenter, camera, director, vr].forEach(el => dock.appendChild(el));
     if (vrHelp) dock.appendChild(vrHelp);
 
     document.body.appendChild(dock);
     document.body.classList.add("service-corner-v30");
+
+    // На случай старой закэшированной разметки удаляем старую строку spatial data.
+    document.querySelectorAll(".v19-mode").forEach(el => el.remove());
 
     // Старый контейнер v23 после переноса становится пустым — удаляем его.
     document.querySelectorAll(".v23-right-stack").forEach(stack => {
@@ -61,7 +63,7 @@
     } catch (_) {}
 
     window.__HR_SERVICE_CORNER_V30__ = {
-      version: "3.0.1",
+      version: "3.1",
       dock,
       collapse() { if (!dock.classList.contains("collapsed")) collapse.click(); },
       expand() { if (dock.classList.contains("collapsed")) collapse.click(); }
