@@ -1,0 +1,214 @@
+.v30-service-dock {
+  position: fixed;
+  z-index: 58;
+  top: 14px;
+  right: 14px;
+  width: 224px;
+  max-height: calc(100vh - 28px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 7px;
+  overflow-y: auto;
+  border: 1px solid rgba(95,224,255,.16);
+  border-radius: 12px;
+  background: linear-gradient(155deg, rgba(3,10,16,.76), rgba(5,17,24,.62));
+  backdrop-filter: blur(14px);
+  box-shadow: 0 18px 54px rgba(0,0,0,.28), 0 0 30px rgba(74,216,255,.05);
+  transition: opacity .22s ease, transform .22s ease;
+}
+
+.v30-service-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 26px;
+  padding: 0 4px 2px 6px;
+  color: rgba(208,238,247,.62);
+}
+.v30-service-head span {
+  font-size: 7px;
+  letter-spacing: .20em;
+  text-transform: uppercase;
+}
+.v30-service-head b {
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  color: rgba(106,226,255,.72);
+}
+.v30-service-collapse {
+  width: 24px;
+  height: 24px;
+  margin-left: auto;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255,255,255,.055);
+  color: rgba(226,244,249,.70);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+}
+.v30-service-collapse:hover { background: rgba(91,221,255,.11); }
+
+.v30-service-dock > .car-hud-v13,
+.v30-service-dock > .v21-vr-chip,
+.v30-service-dock > .v21-vr-help,
+.v30-service-dock > .v18-camera-chip,
+.v30-service-dock > .v19-mode,
+.v30-service-dock > .v20-director-chip,
+.v30-service-dock > .v28-presenter {
+  position: static !important;
+  inset: auto !important;
+  left: auto !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box;
+}
+
+/* Автомобиль: оставляем только модель и скорость, без большой памятки управления. */
+.v30-service-dock .car-hud-v13 {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 9px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(18,7,10,.66), rgba(7,14,20,.58));
+}
+.v30-service-dock .car-model span { font-size: 6px; }
+.v30-service-dock .car-model strong { margin-top: 2px; font-size: 10px; }
+.v30-service-dock .car-speed { margin: 0; gap: 4px; }
+.v30-service-dock .car-speed strong { font-size: 22px; }
+.v30-service-dock .car-speed span { font-size: 6px; padding-bottom: 2px; }
+.v30-service-dock .car-hint { display: none !important; }
+
+/* Камера, режиссёр, spatial и VR — одинаковые компактные строки. */
+.v30-service-dock .v18-camera-chip,
+.v30-service-dock .v20-director-chip,
+.v30-service-dock .v21-vr-chip,
+.v30-service-dock .v19-mode {
+  min-height: 40px;
+  padding: 7px 9px !important;
+  border-radius: 8px;
+  box-shadow: none;
+  backdrop-filter: blur(10px);
+}
+.v30-service-dock .v18-camera-chip {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+}
+.v30-service-dock .v18-camera-chip span,
+.v30-service-dock .v20-director-chip span,
+.v30-service-dock .v21-vr-chip span,
+.v30-service-dock .v19-mode span {
+  font-size: 6px;
+  letter-spacing: .14em;
+}
+.v30-service-dock .v18-camera-chip strong,
+.v30-service-dock .v20-director-chip strong,
+.v30-service-dock .v21-vr-chip strong,
+.v30-service-dock .v19-mode strong {
+  font-size: 9px;
+}
+.v30-service-dock .v21-vr-chip i { display: none; }
+
+.v30-service-dock .v21-vr-help {
+  display: none;
+  padding: 7px 9px;
+  opacity: 1;
+  border-radius: 8px;
+  pointer-events: none;
+  background: rgba(3,12,18,.82);
+}
+.v30-service-dock .v21-vr-help.active { display: block; opacity: 1; }
+
+/* Автопрезентация больше не занимает весь левый нижний угол. */
+.v30-service-dock .v28-presenter {
+  padding: 7px 8px;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 6px;
+  border-radius: 8px;
+  box-shadow: none;
+}
+.v30-service-dock .v28-presenter-copy span { font-size: 6px; }
+.v30-service-dock .v28-presenter-copy strong {
+  margin-top: 2px;
+  white-space: normal;
+  font-size: 8px;
+  line-height: 1.25;
+}
+.v30-service-dock .v28-presenter button {
+  min-height: 28px;
+  padding: 0 7px;
+  font-size: 6px;
+}
+.v30-service-dock .v28-stop-auto {
+  grid-column: 1 / -1;
+  min-height: 25px !important;
+}
+
+/* Старые отдельные контейнеры/подсказки не должны оставаться по экрану. */
+.v23-right-stack:empty { display: none !important; }
+.car-mode-v13 .controls { display: none !important; }
+.car-mode-v13 .progress-card { display: none !important; }
+
+/* Во время чтения итогов сервисный угол не конкурирует с содержанием. */
+.v29-review-active .v30-service-dock {
+  opacity: .22;
+  pointer-events: none;
+}
+
+.v30-service-dock.collapsed {
+  width: 142px;
+  padding-bottom: 5px;
+}
+.v30-service-dock.collapsed > :not(.v30-service-head) { display: none !important; }
+.v30-service-dock.collapsed .v30-service-head { padding-bottom: 0; }
+
+/* На стартовом экране сервисный угол вообще не нужен. */
+.boot:not(.hidden) ~ .v30-service-dock {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+}
+
+@media (hover: none), (pointer: coarse) {
+  .v30-service-dock {
+    top: max(8px, env(safe-area-inset-top));
+    right: max(8px, env(safe-area-inset-right));
+    width: 186px;
+    max-height: calc(100vh - max(16px, env(safe-area-inset-top)) - max(16px, env(safe-area-inset-bottom)));
+    gap: 5px;
+    padding: 6px;
+  }
+  .v30-service-dock .v21-vr-chip,
+  .v30-service-dock .v18-camera-chip,
+  .v30-service-dock .v19-mode,
+  .v30-service-dock .v20-director-chip { min-height: 34px; padding: 6px 7px !important; }
+  .v30-service-dock .car-speed strong { font-size: 19px; }
+  .v30-service-dock .v28-presenter-copy span { display: none; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .v30-service-dock {
+    top: 8px;
+    right: 8px;
+    width: 170px;
+    max-height: calc(100vh - 16px);
+  }
+  .v30-service-dock .car-hud-v13 { padding: 5px 7px; }
+  .v30-service-dock .car-model span { display: none; }
+  .v30-service-dock .car-speed strong { font-size: 17px; }
+  .v30-service-dock .v21-vr-chip,
+  .v30-service-dock .v18-camera-chip,
+  .v30-service-dock .v19-mode,
+  .v30-service-dock .v20-director-chip { min-height: 30px; padding: 5px 7px !important; }
+}
