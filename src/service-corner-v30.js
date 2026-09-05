@@ -23,7 +23,7 @@
 
     const head = document.createElement("div");
     head.className = "v30-service-head";
-    head.innerHTML = '<span>СЕРВИС</span><b>v3.0</b>';
+    head.innerHTML = '<span>СЕРВИС</span><b>v3.0.1</b>';
 
     const collapse = document.createElement("button");
     collapse.type = "button";
@@ -61,7 +61,7 @@
     } catch (_) {}
 
     window.__HR_SERVICE_CORNER_V30__ = {
-      version: "3.0",
+      version: "3.0.1",
       dock,
       collapse() { if (!dock.classList.contains("collapsed")) collapse.click(); },
       expand() { if (dock.classList.contains("collapsed")) collapse.click(); }
