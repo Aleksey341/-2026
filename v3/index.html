@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#050912" />
+  <title>Итоги 2026 · v3 CLEAN CINEMATIC BUILD</title>
+  <link rel="stylesheet" href="./styles.css?v=3001" />
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+</head>
+<body>
+  <canvas id="renderCanvas" aria-label="Итоги 2026 — иммерсивная презентация"></canvas>
+
+  <section id="startScreen" class="start-screen">
+    <div class="start-card">
+      <div class="kicker">ЦК БОРУП · CLEAN CINEMATIC BUILD · v3.0</div>
+      <h1>ИТОГИ 2026</h1>
+      <p>Тестовое наполнение: подтверждённые результаты 2025 года.</p>
+      <div class="mode-grid">
+        <button id="autoMode" class="mode primary"><b>▶ ПРЕЗЕНТАЦИЯ</b><span>автомаршрут · около 7 минут</span></button>
+        <button id="freeMode" class="mode"><b>◉ СВОБОДНАЯ ПОЕЗДКА</b><span>самостоятельное управление</span></button>
+      </div>
+      <div id="bootState" class="boot-state">Подготовка сцены…</div>
+    </div>
+  </section>
+
+  <header id="hud" class="hud hidden">
+    <div class="brand"><span>ЦК БОРУП</span><strong>ИТОГИ 2026</strong><i>DEMO 2025</i></div>
+    <div class="chapter"><span id="chapterNo">00</span><strong id="chapterTitle">СТАРТ</strong><i id="chapterDistance">0 м</i></div>
+    <div class="progress"><b id="progressBar"></b></div>
+  </header>
+
+  <aside id="presenter" class="presenter hidden">
+    <span>РЕЖИМ</span><strong id="modeLabel">СВОБОДНО</strong>
+    <button id="pauseAuto" type="button">ПАУЗА</button>
+    <button id="continueAuto" type="button">ДАЛЬШЕ</button>
+  </aside>
+
+  <div id="storyCard" class="story-card hidden" aria-live="polite"></div>
+  <div id="finale" class="finale hidden">
+    <span>ЦК БОРУП · ИТОГИ 2026</span>
+    <strong>2027</strong>
+    <b>NEXT CHAPTER</b>
+    <i>Следующая глава начинается сейчас</i>
+    <p>Цели 2027 будут загружены после утверждения — без подстановки непроверенных данных.</p>
+  </div>
+
+  <button id="vrButton" class="vr-button hidden" type="button">VR</button>
+  <div class="controls-hint">W/↑ газ · S/↓ тормоз/реверс · A/D руль · Space тормоз · V камера</div>
+
+  <script src="./data.js?v=3001"></script>
+  <script src="./core.js?v=3001"></script>
+  <script src="./vehicle.js?v=3001"></script>
+  <script src="./route.js?v=3001"></script>
+  <script src="./presentation.js?v=3001"></script>
+  <script src="./xr.js?v=3001"></script>
+</body>
+</html>
