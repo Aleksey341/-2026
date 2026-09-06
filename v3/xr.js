@@ -5,9 +5,19 @@
   const button = document.getElementById("vrButton");
   if (!button) return;
 
+  const params = new URLSearchParams(location.search);
+  const savedSeat = (() => {
+    try { return JSON.parse(localStorage.getItem("hr3-vr-seat") || "null") || {}; }
+    catch (_) { return {}; }
+  })();
+  const seat = {
+    y: BABYLON.Scalar.Clamp(Number(params.get("vrY") ?? savedSeat.y ?? 1.25), 0.95, 1.55),
+    z: BABYLON.Scalar.Clamp(Number(params.get("vrZ") ?? savedSeat.z ?? 0.05), -0.35, 0.45)
+  };
+
   const cockpit = new BABYLON.TransformNode("hr3-xr-cockpit", scene);
   cockpit.parent = vehicle.root;
-  cockpit.position.set(0, 1.25, 0.05);
+  cockpit.position.set(0, seat.y, seat.z);
 
   const dash = BABYLON.MeshBuilder.CreatePlane("hr3-xr-dash", { width: .86, height: .25, sideOrientation: BABYLON.Mesh.DOUBLESIDE }, scene);
   dash.parent = vehicle.root;
@@ -42,6 +52,14 @@
     tex.update();
   }
   drawDash();
+
+  function setSeatOffset(y = seat.y, z = seat.z) {
+    seat.y = BABYLON.Scalar.Clamp(Number(y), 0.95, 1.55);
+    seat.z = BABYLON.Scalar.Clamp(Number(z), -0.35, 0.45);
+    cockpit.position.set(0, seat.y, seat.z);
+    try { localStorage.setItem("hr3-vr-seat", JSON.stringify(seat)); } catch (_) {}
+    return { ...seat };
+  }
 
   let xr = null;
   let supported = false;
@@ -90,6 +108,7 @@
       });
       button.classList.remove("hidden");
       button.textContent="ВОЙТИ В VR";
+      button.title=`Посадка VR: Y ${seat.y.toFixed(2)} · Z ${seat.z.toFixed(2)}`;
       xr.baseExperience.sessionManager.onXRSessionInit.add(() => {
         state.xrActive=true;
         state.mode="free";
@@ -130,5 +149,10 @@
   });
 
   init();
-  H.xr={ get supported(){return supported;}, get experience(){return xr;} };
+  H.xr={
+    get supported(){return supported;},
+    get experience(){return xr;},
+    get seatOffset(){return { ...seat };},
+    setSeatOffset
+  };
 })();
