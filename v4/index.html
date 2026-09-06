@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
   <meta name="theme-color" content="#05090f" />
-  <title>ЦК БОРУП · Итоги 2026 · v4.1</title>
-  <link rel="stylesheet" href="./styles.css?v=4101" />
-  <link rel="stylesheet" href="./recruitment-episode-v41.css?v=4101" />
+  <title>BORUP // YEAR REVIEW 2026 · v4.1.1</title>
+  <link rel="stylesheet" href="./styles.css?v=4110" />
+  <link rel="stylesheet" href="./android-guide-v411.css?v=4110" />
+  <link rel="stylesheet" href="./recruitment-episode-v41.css?v=4110" />
   <script src="https://cdn.babylonjs.com/babylon.js"></script>
   <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
 </head>
@@ -14,21 +15,28 @@
   <canvas id="renderCanvas" aria-label="ЦК БОРУП — Итоги 2026"></canvas>
 
   <section id="startScreen" class="start-screen">
-    <div class="start-card">
-      <div class="kicker">ЦК БОРУП · CINEMATIC SCI-FI REVIEW · v4.1</div>
-      <h1>ИТОГИ<br>2026</h1>
-      <p>Сюжетная подача: футуристический комплекс, цифровой проводник и отдельные эпизоды результатов. Первая режиссёрская сцена — «Приём». Тестовые данные — подтверждённые показатели 2025 года.</p>
-      <div class="mode-grid">
-        <button id="autoMode" class="mode primary"><b>START PRESENTATION</b><span>автоматический кинематографичный маршрут</span></button>
-        <button id="freeMode" class="mode"><b>FREE EXPLORE</b><span>самостоятельное исследование комплекса</span></button>
-        <button id="vrMode" class="mode"><b>VR MODE</b><span>WebXR · при поддержке устройства</span></button>
+    <div class="start-shell">
+      <div class="start-card">
+        <div class="kicker">ЦК БОРУП · IMMERSIVE CORPORATE REVIEW · v4.1.1</div>
+        <h1><span>BORUP //</span>YEAR REVIEW <b>2026</b></h1>
+        <p>Интерактивное пространство итогов года. Цифровой куратор сопровождает маршрут, представляет эпизоды и переводит внимание на факты и результаты каждого блока.</p>
+        <div class="mode-grid">
+          <button id="autoMode" class="mode primary"><b>START PRESENTATION</b><span>режиссёрский маршрут по эпизодам года</span></button>
+          <button id="freeMode" class="mode"><b>FREE EXPLORE</b><span>самостоятельное исследование пространства</span></button>
+          <button id="vrMode" class="mode"><b>VR MODE</b><span>пространственный режим WebXR</span></button>
+        </div>
+        <div id="bootState" class="boot-state">INITIALIZING ANDROID GUIDE…</div>
       </div>
-      <div id="bootState" class="boot-state">INITIALIZING ENVIRONMENT…</div>
+      <div class="start-visual" aria-hidden="true">
+        <span>ANDROID GUIDE</span>
+        <b>DIGITAL CURATOR // ONLINE</b>
+        <i>ATRIUM LINK · EPISODE PRESENTER</i>
+      </div>
     </div>
   </section>
 
   <header id="hud" class="hud hidden">
-    <div class="brand"><span>ЦК БОРУП // YEAR REVIEW</span><strong>ИТОГИ 2026</strong><i>DEMO DATA · 2025</i></div>
+    <div class="brand"><span>BORUP // YEAR REVIEW</span><strong>ИТОГИ 2026</strong><i>DEMO DATA · 2025</i></div>
     <div class="section-info"><span>SECTION</span><strong id="sectionNo">00 / 06</strong><i>CINEMATIC MODE</i></div>
   </header>
   <div class="progress-line"><b id="progressBar"></b></div>
@@ -42,7 +50,7 @@
   <section id="board" class="board hidden" aria-live="polite"></section>
 
   <section id="finale" class="finale hidden">
-    <span>ЦК БОРУП // YEAR REVIEW 2026</span>
+    <span>BORUP // YEAR REVIEW 2026</span>
     <strong>2027</strong>
     <b>NEXT CHAPTER</b>
     <i>Следующая глава начинается сейчас</i>
@@ -52,12 +60,13 @@
   <div class="controls-hint">WASD / стрелки — движение · V — сменить плечо камеры</div>
   <div id="mobilePad" class="mobile-pad hidden"><i id="mobileKnob"></i></div>
 
-  <script src="./data.js?v=4101"></script>
-  <script src="./core.js?v=4101"></script>
-  <script src="./world.js?v=4101"></script>
-  <script src="./character.js?v=4101"></script>
-  <script src="./presentation.js?v=4101"></script>
-  <script src="./recruitment-episode-v41.js?v=4101"></script>
-  <script src="./xr.js?v=4101"></script>
+  <script src="./data.js?v=4110"></script>
+  <script src="./core.js?v=4110"></script>
+  <script src="./world.js?v=4110"></script>
+  <script src="./character.js?v=4110"></script>
+  <script src="./android-guide-v411.js?v=4110"></script>
+  <script src="./presentation.js?v=4110"></script>
+  <script src="./recruitment-episode-v41.js?v=4110"></script>
+  <script src="./xr.js?v=4110"></script>
 </body>
 </html>
