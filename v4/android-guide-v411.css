@@ -1,0 +1,85 @@
+/* v4.1.1 — android guide / start-screen composition */
+.start-screen{
+  place-items:stretch;
+  background:
+    radial-gradient(circle at 78% 42%,rgba(112,226,255,.15),transparent 30%),
+    linear-gradient(90deg,rgba(2,6,11,.95) 0%,rgba(3,8,14,.82) 48%,rgba(4,10,17,.48) 72%,rgba(2,6,11,.72) 100%);
+  backdrop-filter:none;
+}
+.start-shell{
+  position:relative;
+  z-index:2;
+  width:min(1500px,100%);
+  min-height:100%;
+  margin:0 auto;
+  padding:clamp(32px,6vw,92px);
+  display:grid;
+  grid-template-columns:minmax(420px,720px) minmax(280px,1fr);
+  gap:clamp(24px,6vw,100px);
+  align-items:center;
+}
+.start-card{
+  width:100%;
+  max-width:720px;
+  padding:0;
+  border:0;
+  background:none;
+  box-shadow:none;
+}
+.start-card:before,.start-card:after{display:none}
+.start-card h1{
+  margin:16px 0 18px;
+  max-width:700px;
+  font-size:clamp(54px,7.3vw,112px);
+  line-height:.84;
+  letter-spacing:-.055em;
+  font-weight:260;
+}
+.start-card h1 span{display:block;font-size:.34em;line-height:1.1;letter-spacing:.13em;color:#9adff2;font-weight:520}
+.start-card h1 b{font-weight:650;color:#eefbff}
+.start-card p{max-width:570px;color:#b4c7d1;font-size:15px;line-height:1.62}
+.mode-grid{grid-template-columns:1fr;max-width:570px;margin-top:34px}
+.mode{min-height:76px;display:grid;grid-template-columns:minmax(180px,.72fr) 1fr;align-items:center;gap:18px;padding:17px 20px;background:linear-gradient(90deg,rgba(10,20,29,.74),rgba(8,16,24,.38));border-color:rgba(189,235,255,.13)}
+.mode.primary{border-color:rgba(135,232,255,.68);box-shadow:inset 3px 0 0 #88e9ff}
+.mode b{margin:0;font-size:13px;letter-spacing:.11em}
+.mode span{font-size:11px;line-height:1.4;color:#7f99a7}
+.boot-state{margin-top:20px;padding-left:12px;border-left:1px solid rgba(128,226,255,.45)}
+.start-visual{
+  align-self:stretch;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  align-items:flex-end;
+  padding:0 8px 5vh 0;
+  pointer-events:none;
+  text-align:right;
+}
+.start-visual span{font-size:10px;letter-spacing:.26em;color:#7ea4b4}
+.start-visual b{margin-top:8px;font-size:12px;letter-spacing:.14em;font-weight:560;color:#dff8ff}
+.start-visual i{margin-top:5px;font-style:normal;font-size:10px;letter-spacing:.12em;color:#6c8591}
+.start-screen:after{
+  content:"";
+  position:absolute;
+  right:7vw;
+  top:10vh;
+  width:min(34vw,520px);
+  height:76vh;
+  border-right:1px solid rgba(135,231,255,.18);
+  border-bottom:1px solid rgba(135,231,255,.12);
+  background:linear-gradient(180deg,transparent,rgba(113,226,255,.03));
+  clip-path:polygon(15% 0,100% 0,100% 100%,0 100%,0 15%);
+  pointer-events:none;
+}
+body[data-hr4-mode="auto"] .controls-hint,
+body[data-hr4-mode="auto"] .mobile-pad{display:none!important}
+body[data-hr4-mode="free"] .presenter{display:none!important}
+body[data-hr4-mode="free"] .controls-hint{opacity:.9}
+
+@media(max-width:900px){
+  .start-screen{background:linear-gradient(180deg,rgba(2,6,11,.82),rgba(2,6,11,.94))}
+  .start-shell{grid-template-columns:1fr;padding:26px;align-items:end}
+  .start-visual{display:none}
+  .start-card{max-width:none}
+  .start-card h1{font-size:clamp(50px,15vw,86px)}
+  .mode{grid-template-columns:1fr;gap:7px}
+}
