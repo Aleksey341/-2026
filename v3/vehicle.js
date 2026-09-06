@@ -118,6 +118,7 @@
   const manual = { throttle: 0, steer: 0, brake: false };
   const autoInput = { throttle: 0, steer: 0, brake: false, active: false };
   const xrInput = { throttle: 0, steer: 0, brake: false, active: false };
+  let mobileBrake = false;
 
   let joy = { x: 0, y: 0, id: null };
   if (H.isMobile) {
@@ -146,8 +147,8 @@
     base.addEventListener("pointermove", e => { if (e.pointerId === joy.id) updateJoy(e); });
     base.addEventListener("pointerup", reset);
     base.addEventListener("pointercancel", reset);
-    mobile.querySelector("#hr3Brake").addEventListener("pointerdown", () => manual.brake = true);
-    ["pointerup","pointercancel","pointerleave"].forEach(ev => mobile.querySelector("#hr3Brake").addEventListener(ev, () => manual.brake = false));
+    mobile.querySelector("#hr3Brake").addEventListener("pointerdown", () => mobileBrake = true);
+    ["pointerup","pointercancel","pointerleave"].forEach(ev => mobile.querySelector("#hr3Brake").addEventListener(ev, () => mobileBrake = false));
     mobile.querySelector("#hr3Cam").addEventListener("click", () => cameraMode = (cameraMode + 1) % 3);
   }
 
@@ -171,7 +172,7 @@
     if (keys.has("KeyD") || keys.has("ArrowRight")) manual.steer += 1;
     manual.throttle = BABYLON.Scalar.Clamp(manual.throttle + joy.y, -1, 1);
     manual.steer = BABYLON.Scalar.Clamp(manual.steer + joy.x, -1, 1);
-    manual.brake = manual.brake || keys.has("Space");
+    manual.brake = mobileBrake || keys.has("Space");
     return manual;
   }
 
