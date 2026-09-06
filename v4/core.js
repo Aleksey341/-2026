@@ -52,7 +52,7 @@
     emit('mode', mode);
   }
 
-  window.HR4 = { version:'4.0.0', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
+  window.HR4 = { version:'4.1.0', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
 
   document.getElementById('autoMode')?.addEventListener('click',()=>start('auto'));
   document.getElementById('freeMode')?.addEventListener('click',()=>start('free'));
@@ -64,5 +64,5 @@
     scene.render();
   });
   addEventListener('resize',()=>engine.resize());
-  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='Сцена готова · cinematic sci-fi v4.0'; emit('ready'); },300);
+  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='Сцена готова · recruitment episode v4.1'; emit('ready'); },300);
 })();
