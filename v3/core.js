@@ -87,7 +87,7 @@
   }
 
   window.HR3 = {
-    version: "3.3.0",
+    version: "3.4.0",
     data: window.HR3_DATA,
     canvas, engine, scene, camera, glow, pipeline, isMobile,
     state, on, emit, registerUpdate, setMode,
@@ -109,7 +109,7 @@
   window.addEventListener("resize", () => engine.resize());
   window.setTimeout(() => {
     const boot = document.getElementById("bootState");
-    if (boot && !boot.textContent.includes("автомоб")) boot.textContent = "Сцена готова · clean cinematic v3.3";
+    if (boot && !boot.textContent.includes("автомоб")) boot.textContent = "Сцена готова · cinematic districts v3.4";
     emit("ready");
   }, 350);
 })();
