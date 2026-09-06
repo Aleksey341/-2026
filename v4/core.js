@@ -55,7 +55,7 @@
     emit('mode', mode);
   }
 
-  window.HR4 = { version:'4.1.1', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
+  window.HR4 = { version:'4.1.2', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
 
   document.getElementById('autoMode')?.addEventListener('click',()=>start('auto'));
   document.getElementById('freeMode')?.addEventListener('click',()=>start('free'));
@@ -67,5 +67,5 @@
     scene.render();
   });
   addEventListener('resize',()=>engine.resize());
-  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='SCENE READY · ANDROID GUIDE ONLINE · v4.1.1'; emit('ready'); },300);
+  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='SCENE READY · APPROVED ANDROID GUIDE ONLINE · v4.1.2'; emit('ready'); },300);
 })();
