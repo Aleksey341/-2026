@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#05090f" />
+  <title>ЦК БОРУП · Итоги 2026 · v4.0</title>
+  <link rel="stylesheet" href="./styles.css?v=4001" />
+  <script src="https://cdn.babylonjs.com/babylon.js"></script>
+  <script src="https://cdn.babylonjs.com/loaders/babylonjs.loaders.min.js"></script>
+</head>
+<body>
+  <canvas id="renderCanvas" aria-label="ЦК БОРУП — Итоги 2026"></canvas>
+
+  <section id="startScreen" class="start-screen">
+    <div class="start-card">
+      <div class="kicker">ЦК БОРУП · CINEMATIC SCI-FI REVIEW · v4.0</div>
+      <h1>ИТОГИ<br>2026</h1>
+      <p>Новая сюжетная подача: футуристический комплекс, цифровой проводник и отдельные эпизоды результатов. Тестовые данные — подтверждённые показатели 2025 года.</p>
+      <div class="mode-grid">
+        <button id="autoMode" class="mode primary"><b>START PRESENTATION</b><span>автоматический кинематографичный маршрут</span></button>
+        <button id="freeMode" class="mode"><b>FREE EXPLORE</b><span>самостоятельное исследование комплекса</span></button>
+        <button id="vrMode" class="mode"><b>VR MODE</b><span>WebXR · при поддержке устройства</span></button>
+      </div>
+      <div id="bootState" class="boot-state">INITIALIZING ENVIRONMENT…</div>
+    </div>
+  </section>
+
+  <header id="hud" class="hud hidden">
+    <div class="brand"><span>ЦК БОРУП // YEAR REVIEW</span><strong>ИТОГИ 2026</strong><i>DEMO DATA · 2025</i></div>
+    <div class="section-info"><span>SECTION</span><strong id="sectionNo">00 / 06</strong><i>CINEMATIC MODE</i></div>
+  </header>
+  <div class="progress-line"><b id="progressBar"></b></div>
+
+  <aside id="presenter" class="presenter hidden">
+    <span>MODE</span><strong id="modeLabel">ИССЛЕДОВАНИЕ</strong>
+    <button id="pauseAuto" type="button">ПАУЗА</button>
+    <button id="nextAuto" type="button">ДАЛЬШЕ</button>
+  </aside>
+
+  <section id="board" class="board hidden" aria-live="polite"></section>
+
+  <section id="finale" class="finale hidden">
+    <span>ЦК БОРУП // YEAR REVIEW 2026</span>
+    <strong>2027</strong>
+    <b>NEXT CHAPTER</b>
+    <i>Следующая глава начинается сейчас</i>
+  </section>
+
+  <button id="vrButton" class="vr-button hidden" type="button">ENTER VR</button>
+  <div class="controls-hint">WASD / стрелки — движение · V — сменить плечо камеры</div>
+  <div id="mobilePad" class="mobile-pad hidden"><i id="mobileKnob"></i></div>
+
+  <script src="./data.js?v=4001"></script>
+  <script src="./core.js?v=4001"></script>
+  <script src="./world.js?v=4001"></script>
+  <script src="./character.js?v=4001"></script>
+  <script src="./presentation.js?v=4001"></script>
+  <script src="./xr.js?v=4001"></script>
+</body>
+</html>
