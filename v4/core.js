@@ -44,19 +44,22 @@
 
   function start(mode){
     state.mode = mode; state.running = true; state.autoPaused = false;
+    document.body.dataset.hr4Mode = mode;
     document.getElementById('startScreen')?.classList.add('hidden');
     document.getElementById('hud')?.classList.remove('hidden');
-    document.getElementById('presenter')?.classList.remove('hidden');
-    document.getElementById('mobilePad')?.classList.remove('hidden');
+    const presenter = document.getElementById('presenter');
+    const mobilePad = document.getElementById('mobilePad');
+    if (mode === 'auto') presenter?.classList.remove('hidden'); else presenter?.classList.add('hidden');
+    if (mode === 'free' && isMobile) mobilePad?.classList.remove('hidden'); else mobilePad?.classList.add('hidden');
     const label = document.getElementById('modeLabel'); if(label) label.textContent = mode === 'auto' ? 'ПРЕЗЕНТАЦИЯ' : 'ИССЛЕДОВАНИЕ';
     emit('mode', mode);
   }
 
-  window.HR4 = { version:'4.1.0', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
+  window.HR4 = { version:'4.1.1', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
 
   document.getElementById('autoMode')?.addEventListener('click',()=>start('auto'));
   document.getElementById('freeMode')?.addEventListener('click',()=>start('free'));
-  document.getElementById('vrMode')?.addEventListener('click',()=>{ start('free'); setTimeout(()=>emit('request:vr'),150); });
+  document.getElementById('vrMode')?.addEventListener('click',()=>{ start('free'); document.body.dataset.hr4Mode='vr'; setTimeout(()=>emit('request:vr'),150); });
 
   engine.runRenderLoop(()=>{
     const dt = Math.min(engine.getDeltaTime()/1000,.05);
@@ -64,5 +67,5 @@
     scene.render();
   });
   addEventListener('resize',()=>engine.resize());
-  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='Сцена готова · recruitment episode v4.1'; emit('ready'); },300);
+  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='SCENE READY · ANDROID GUIDE ONLINE · v4.1.1'; emit('ready'); },300);
 })();
