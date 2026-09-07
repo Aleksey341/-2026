@@ -5,28 +5,29 @@
   const { scene, state, camera } = H;
   const V = (x = 0, y = 0, z = 0) => new BABYLON.Vector3(x, y, z);
 
-  // v4.1.4 — the approved android is now tied to the navigation proxy.
-  // He physically travels through the complex in AUTO and FREE modes instead
-  // of teleporting independently as a decorative billboard.
+  // v4.1.5 — the approved android remains tied to the navigation proxy,
+  // but the image orientation is corrected for Babylon's texture coordinate system.
   const root = new BABYLON.TransformNode('hr4-android-guide', scene);
   root.position.set(0, 0.02, -3.2);
   root.setEnabled(false);
 
   const texture = new BABYLON.Texture(
-    './assets/borup-android-approved.webp?v=4140',
+    './assets/borup-android-approved.webp?v=4150',
     scene,
     true,
-    false,
+    true,
     BABYLON.Texture.BILINEAR_SAMPLINGMODE
   );
   texture.hasAlpha = true;
   texture.wrapU = BABYLON.Texture.CLAMP_ADDRESSMODE;
   texture.wrapV = BABYLON.Texture.CLAMP_ADDRESSMODE;
+  texture.uScale = 1;
+  texture.vScale = 1;
+  texture.uOffset = 0;
+  texture.vOffset = 0;
 
   const androidMat = new BABYLON.StandardMaterial('hr4-android-reference-mat', scene);
   androidMat.diffuseTexture = texture;
-  // Do NOT reuse the portrait as an emissive texture: that was the main source
-  // of the smeared/ghosted silhouette visible through bloom and fog.
   androidMat.emissiveTexture = null;
   androidMat.diffuseColor = BABYLON.Color3.White();
   androidMat.emissiveColor = new BABYLON.Color3(0.06, 0.12, 0.16);
@@ -109,8 +110,6 @@
   }
 
   function presentationOffset() {
-    // The board is on the right side of the screen, therefore the guide moves
-    // a little to camera-left while presenting so he never sits underneath it.
     const right = camera.getDirection(BABYLON.Axis.X).clone();
     right.y = 0;
     if (right.lengthSquared() > 0.001) right.normalize();
@@ -153,9 +152,7 @@
     const target = nav.clone();
     if (boardActive) target.addInPlace(presentationOffset());
 
-    // Fast but smooth positional tracking makes the android visibly travel with
-    // the actual route rather than remain in a fixed presentation position.
-    const follow = 1 - Math.exp(-10 * dt);
+    const follow = 1 - Math.exp(-12 * dt);
     root.position.x = BABYLON.Scalar.Lerp(root.position.x, target.x, follow);
     root.position.z = BABYLON.Scalar.Lerp(root.position.z, target.z, follow);
     root.position.y = 0.02;
@@ -163,21 +160,19 @@
     if (moving) walkCycle += dt * (4.2 + smoothSpeed * 2.1);
     const locomotion = BABYLON.Scalar.Clamp(smoothSpeed / 2.7, 0, 1);
 
-    // 2.5D locomotion: stride/bob/lean on the approved art. It is deliberately
-    // subtle, so the artwork does not rubber-band or distort.
     const bob = moving ? Math.abs(Math.sin(walkCycle)) * 0.035 * locomotion : 0;
     const sway = moving ? Math.sin(walkCycle * 0.5) * 0.022 * locomotion : 0;
     portrait.position.y = 1.18 + bob;
     portrait.position.x = sway;
-    portrait.rotation.z = moving ? Math.sin(walkCycle * 0.5) * 0.010 * locomotion : BABYLON.Scalar.Lerp(portrait.rotation.z,0,0.12);
+    portrait.rotation.z = moving
+      ? Math.sin(walkCycle * 0.5) * 0.010 * locomotion
+      : BABYLON.Scalar.Lerp(portrait.rotation.z, 0, 0.12);
 
     let desiredScale = boardActive ? 0.84 : 0.76;
     if (presenting) desiredScale = 0.89;
     const nextScale = BABYLON.Scalar.Lerp(portrait.scaling.x, desiredScale, 1 - Math.exp(-5 * dt));
-    portrait.scaling.setAll(nextScale);
+    portrait.scaling.set(nextScale, nextScale, nextScale);
 
-    // Never allow the cutout to pass through the camera. This removes the giant
-    // cropped face/body artifact that was visible on the supplied screenshot.
     const distToCamera = BABYLON.Vector3.Distance(root.position, camera.position);
     const cameraSafe = BABYLON.Scalar.Clamp((distToCamera - 1.45) / 1.35, 0, 1);
     const baseAlpha = boardActive ? (presenting ? 0.82 : 0.70) : 0.78;
@@ -189,7 +184,7 @@
 
     baseRing.rotation.z -= dt * (moving ? 0.62 : 0.22);
     const pulse = 1 + Math.sin(elapsed * 2.4) * 0.028;
-    baseRing.scaling.setAll(pulse);
+    baseRing.scaling.set(pulse, pulse, pulse);
     ringMat.alpha = 0.34 + locomotion * 0.18 + (presenting ? 0.10 : 0);
 
     if (presenting) {
