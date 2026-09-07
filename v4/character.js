@@ -1,35 +1,93 @@
 (() => {
   const H=window.HR4; if(!H) return;
-  const {scene,camera,state}=H;
+  const {camera,state}=H;
   const V=(x=0,y=0,z=0)=>new BABYLON.Vector3(x,y,z);
-  function mat(name,hex,em=0,metal=.3,rough=.34){const m=new BABYLON.PBRMaterial(name,scene);m.albedoColor=BABYLON.Color3.FromHexString(hex);m.emissiveColor=m.albedoColor.scale(em);m.metallic=metal;m.roughness=rough;return m;}
-  const suit=mat('hr4-player-suit','#151d24',.01,.48,.3), trim=mat('hr4-player-trim','#7f9aa7',.04,.16,.32), skin=mat('hr4-player-skin','#c9b8aa',.01,.03,.62), sole=mat('hr4-player-sole','#05080b',0,.62,.24);
-  const root=new BABYLON.TransformNode('hr4-player',scene);root.position.set(0,0,-3.2);root.rotation.y=0;root.setEnabled(false);
-  const torso=BABYLON.MeshBuilder.CreateCylinder('hr4-player-torso',{height:1.08,diameterTop:.48,diameterBottom:.62,tessellation:14},scene);torso.parent=root;torso.position.y=1.18;torso.material=suit;
-  const back=BABYLON.MeshBuilder.CreateBox('hr4-player-back-trim',{width:.22,height:.48,depth:.035},scene);back.parent=root;back.position.set(0,1.27,.31);back.material=trim;
-  const neck=BABYLON.MeshBuilder.CreateCylinder('hr4-player-neck',{height:.18,diameter:.19,tessellation:12},scene);neck.parent=root;neck.position.y=1.82;neck.material=skin;
-  const head=BABYLON.MeshBuilder.CreateSphere('hr4-player-head',{diameter:.48,segments:18},scene);head.parent=root;head.position.y=2.08;head.scaling.y=1.08;head.material=skin;
-  const hair=BABYLON.MeshBuilder.CreateSphere('hr4-player-hair',{diameter:.50,segments:18,slice:.52},scene);hair.parent=root;hair.position.set(0,2.19,.015);hair.scaling.y=.72;hair.material=suit;
-  const limbs={};
-  function limb(name,x,y,material){const pivot=new BABYLON.TransformNode(name+'-pivot',scene);pivot.parent=root;pivot.position.set(x,y,0);const mesh=BABYLON.MeshBuilder.CreateCylinder(name,{height:.72,diameter:.16,tessellation:10},scene);mesh.parent=pivot;mesh.position.y=-.34;mesh.material=material;limbs[name]=pivot;return pivot;}
-  limb('player-armL',-.38,1.60,suit);limb('player-armR',.38,1.60,suit);limb('player-legL',-.19,.73,suit);limb('player-legR',.19,.73,suit);
-  const footL=BABYLON.MeshBuilder.CreateBox('hr4-player-foot-l',{width:.20,height:.12,depth:.38},scene);footL.parent=root;footL.position.set(-.19,.08,-.07);footL.material=sole;
-  const footR=footL.clone('hr4-player-foot-r');footR.parent=root;footR.position.x=.19;
-  const keys=new Set(); addEventListener('keydown',e=>keys.add(e.code)); addEventListener('keyup',e=>keys.delete(e.code));
-  let joyX=0,joyY=0;const pad=document.getElementById('mobilePad'),knob=document.getElementById('mobileKnob');
-  if(pad&&knob){let pid=null;const update=e=>{const r=pad.getBoundingClientRect();let x=(e.clientX-(r.left+r.width/2))/(r.width*.34),y=(e.clientY-(r.top+r.height/2))/(r.height*.34);const len=Math.hypot(x,y);if(len>1){x/=len;y/=len;}joyX=x;joyY=-y;knob.style.transform=`translate(${x*27}px,${y*27}px)`;};pad.addEventListener('pointerdown',e=>{pid=e.pointerId;pad.setPointerCapture(pid);update(e);});pad.addEventListener('pointermove',e=>{if(e.pointerId===pid)update(e);});const end=e=>{if(e.pointerId!==pid)return;pid=null;joyX=joyY=0;knob.style.transform='translate(0,0)';};pad.addEventListener('pointerup',end);pad.addEventListener('pointercancel',end);}
-  let autoTarget=null,autoSpeed=2.35,walking=0,cameraSide=1;
-  function goTo(target,speed=2.35){autoTarget=target.clone();autoSpeed=speed;} function cancelAuto(){autoTarget=null;} function isAt(target,r=.55){return BABYLON.Vector3.DistanceSquared(root.position,target)<r*r;} function setPose(pos,yaw=0){root.position.copyFrom(pos);root.position.y=0;root.rotation.y=yaw;}
+
+  // v4.1.3 — navigation is intentionally separated from the visual android.
+  // The old primitive robot mesh has been removed completely. The approved
+  // BORUP android is rendered by android-guide-v411.js and follows this proxy.
+  const root=new BABYLON.TransformNode('hr4-player-nav',H.scene);
+  root.position.set(0,0,-3.2);
+  root.rotation.y=0;
+  root.setEnabled(false);
+
+  const keys=new Set();
+  addEventListener('keydown',e=>keys.add(e.code));
+  addEventListener('keyup',e=>keys.delete(e.code));
+
+  let joyX=0,joyY=0;
+  const pad=document.getElementById('mobilePad'),knob=document.getElementById('mobileKnob');
+  if(pad&&knob){
+    let pid=null;
+    const update=e=>{
+      const r=pad.getBoundingClientRect();
+      let x=(e.clientX-(r.left+r.width/2))/(r.width*.34);
+      let y=(e.clientY-(r.top+r.height/2))/(r.height*.34);
+      const len=Math.hypot(x,y);
+      if(len>1){x/=len;y/=len;}
+      joyX=x;joyY=-y;
+      knob.style.transform=`translate(${x*27}px,${y*27}px)`;
+    };
+    pad.addEventListener('pointerdown',e=>{pid=e.pointerId;pad.setPointerCapture(pid);update(e);});
+    pad.addEventListener('pointermove',e=>{if(e.pointerId===pid)update(e);});
+    const end=e=>{
+      if(e.pointerId!==pid)return;
+      pid=null;joyX=joyY=0;
+      knob.style.transform='translate(0,0)';
+    };
+    pad.addEventListener('pointerup',end);
+    pad.addEventListener('pointercancel',end);
+  }
+
+  let autoTarget=null,autoSpeed=2.35,cameraSide=1;
+  function goTo(target,speed=2.35){autoTarget=target.clone();autoSpeed=speed;}
+  function cancelAuto(){autoTarget=null;}
+  function isAt(target,r=.55){return BABYLON.Vector3.DistanceSquared(root.position,target)<r*r;}
+  function setPose(pos,yaw=0){root.position.copyFrom(pos);root.position.y=0;root.rotation.y=yaw;}
+
   addEventListener('keydown',e=>{if(e.code==='KeyV')cameraSide*=-1;});
   H.on('mode',()=>root.setEnabled(true));
+
   H.registerUpdate(dt=>{
-    if(!state.running)return;let mx=0,mz=0,speed=2.7;
-    if(autoTarget){const delta=autoTarget.subtract(root.position);delta.y=0;const dist=delta.length();if(dist<.12){autoTarget=null;}else{delta.normalize();mx=delta.x;mz=delta.z;speed=autoSpeed;}}
-    else if(state.mode==='free'){mx=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0)+joyX;mz=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0)+joyY;const len=Math.hypot(mx,mz);if(len>1){mx/=len;mz/=len;}}
+    if(!state.running)return;
+    let mx=0,mz=0,speed=2.7;
+
+    if(autoTarget){
+      const delta=autoTarget.subtract(root.position);delta.y=0;
+      const dist=delta.length();
+      if(dist<.12){autoTarget=null;}
+      else{delta.normalize();mx=delta.x;mz=delta.z;speed=autoSpeed;}
+    }else if(state.mode==='free'){
+      mx=(keys.has('KeyD')||keys.has('ArrowRight')?1:0)-(keys.has('KeyA')||keys.has('ArrowLeft')?1:0)+joyX;
+      mz=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0)+joyY;
+      const len=Math.hypot(mx,mz);
+      if(len>1){mx/=len;mz/=len;}
+    }
+
     const moving=Math.hypot(mx,mz)>.04;
-    if(moving){const desired=Math.atan2(mx,mz);let diff=desired-root.rotation.y;while(diff>Math.PI)diff-=Math.PI*2;while(diff<-Math.PI)diff+=Math.PI*2;root.rotation.y+=diff*(1-Math.exp(-8*dt));root.position.x+=mx*speed*dt;root.position.z+=mz*speed*dt;root.position.x=BABYLON.Scalar.Clamp(root.position.x,-16,16);root.position.z=BABYLON.Scalar.Clamp(root.position.z,-4.5,79);walking+=dt*8.5;}
-    const swing=moving?Math.sin(walking)*.46:0;limbs['player-armL'].rotation.x=BABYLON.Scalar.Lerp(limbs['player-armL'].rotation.x,swing,.18);limbs['player-armR'].rotation.x=BABYLON.Scalar.Lerp(limbs['player-armR'].rotation.x,-swing,.18);limbs['player-legL'].rotation.x=BABYLON.Scalar.Lerp(limbs['player-legL'].rotation.x,-swing*.72,.18);limbs['player-legR'].rotation.x=BABYLON.Scalar.Lerp(limbs['player-legR'].rotation.x,swing*.72,.18);torso.position.y=1.18+(moving?Math.abs(Math.sin(walking*2))*.016:0);
-    if(!state.xrActive){const yaw=root.rotation.y,fx=Math.sin(yaw),fz=Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);const desiredCam=V(root.position.x-fx*4.6+rx*1.05*cameraSide,root.position.y+2.7,root.position.z-fz*4.6+rz*1.05*cameraSide);camera.position=BABYLON.Vector3.Lerp(camera.position,desiredCam,1-Math.exp(-7*dt));camera.setTarget(V(root.position.x+fx*1.9,root.position.y+1.45,root.position.z+fz*1.9));}
+    if(moving){
+      const desired=Math.atan2(mx,mz);
+      let diff=desired-root.rotation.y;
+      while(diff>Math.PI)diff-=Math.PI*2;
+      while(diff<-Math.PI)diff+=Math.PI*2;
+      root.rotation.y+=diff*(1-Math.exp(-8*dt));
+      root.position.x+=mx*speed*dt;
+      root.position.z+=mz*speed*dt;
+      root.position.x=BABYLON.Scalar.Clamp(root.position.x,-16,16);
+      root.position.z=BABYLON.Scalar.Clamp(root.position.z,-4.5,79);
+    }
+
+    if(!state.xrActive){
+      const yaw=root.rotation.y,fx=Math.sin(yaw),fz=Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);
+      const desiredCam=V(
+        root.position.x-fx*4.6+rx*1.05*cameraSide,
+        root.position.y+2.7,
+        root.position.z-fz*4.6+rz*1.05*cameraSide
+      );
+      camera.position=BABYLON.Vector3.Lerp(camera.position,desiredCam,1-Math.exp(-7*dt));
+      camera.setTarget(V(root.position.x+fx*1.9,root.position.y+1.45,root.position.z+fz*1.9));
+    }
   });
+
   H.character={root,goTo,cancelAuto,isAt,setPose,get autoTarget(){return autoTarget;}};
 })();
