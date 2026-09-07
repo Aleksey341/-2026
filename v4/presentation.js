@@ -11,14 +11,29 @@
     sectionNo.textContent=section?.final?'06 / 06':String(i+1).padStart(2,'0')+' / 06';
     const z=character.root.position.z;progressBar.style.width=`${BABYLON.Scalar.Clamp((z/76)*100,0,100)}%`;
   }
+
   function showBoard(section,p='result'){
     if(!section||section.final)return;
-    phase=p;const label=p==='problem'?'ЗАДАЧА':p==='action'?'ЧТО СДЕЛАЛИ':'РЕЗУЛЬТАТ';
+    phase=p;
+    const label=p==='problem'?'ЗАДАЧА':p==='action'?'ЧТО СДЕЛАЛИ':'РЕЗУЛЬТАТ';
     const text=p==='problem'?section.problem:p==='action'?section.action:section.result;
     board.style.setProperty('--accent',section.accent);
-    board.innerHTML=`<div class="meta">SECTION ${section.no} · DEMO ${data.demoYear}</div><h2>${section.title}</h2><h3>${label}</h3><p>${text}</p>${p==='result'?`<div class="metrics">${section.metrics.map(m=>`<div class="metric"><b>${m[0]}</b><span>${m[1]}</span></div>`).join('')}</div>`:''}`;
-    board.classList.remove('hidden');H.emit('board:show',{section,phase:p});
+    board.innerHTML=`
+      <div class="board-guide" aria-hidden="true">
+        <img src="./assets/borup-android-approved.webp?v=4130" alt="" />
+        <span>DIGITAL CURATOR</span>
+      </div>
+      <div class="board-content">
+        <div class="meta">SECTION ${section.no} · DEMO ${data.demoYear}</div>
+        <h2>${section.title}</h2>
+        <h3>${label}</h3>
+        <p>${text}</p>
+        ${p==='result'?`<div class="metrics">${section.metrics.map(m=>`<div class="metric"><b>${m[0]}</b><span>${m[1]}</span></div>`).join('')}</div>`:''}
+      </div>`;
+    board.classList.remove('hidden');
+    H.emit('board:show',{section,phase:p});
   }
+
   function hideBoard(){board.classList.add('hidden');H.emit('board:hide');}
   function showFinale(){hideBoard();finale.classList.remove('hidden');H.emit('finale');}
   function hideFinale(){finale.classList.add('hidden');}
@@ -41,7 +56,11 @@
   });
   nextBtn?.addEventListener('click',()=>{
     if(state.mode!=='auto')return;
-    if(stage==='board'){if(phase==='problem'){phase='action';phaseTime=0;showBoard(data.sections[index],'action');}else if(phase==='action'){phase='result';phaseTime=0;showBoard(data.sections[index],'result');}else{hideBoard();stage='return';issueTarget();}}
+    if(stage==='board'){
+      if(phase==='problem'){phase='action';phaseTime=0;showBoard(data.sections[index],'action');}
+      else if(phase==='action'){phase='result';phaseTime=0;showBoard(data.sections[index],'result');}
+      else{hideBoard();stage='return';issueTarget();}
+    }
   });
 
   H.registerUpdate(dt=>{
