@@ -5,25 +5,25 @@
   if (isMobile) engine.setHardwareScalingLevel(Math.max(1.25, Math.min(1.9, window.devicePixelRatio || 1.4)));
 
   const scene = new BABYLON.Scene(engine);
-  scene.clearColor = new BABYLON.Color4(.008,.014,.021,1);
+  scene.clearColor = new BABYLON.Color4(.006,.012,.020,1);
   scene.fogMode = BABYLON.Scene.FOGMODE_EXP2;
-  scene.fogDensity = .006;
-  scene.fogColor = new BABYLON.Color3(.03,.05,.07);
+  scene.fogDensity = .0036;
+  scene.fogColor = new BABYLON.Color3(.018,.032,.046);
 
   const camera = new BABYLON.UniversalCamera('hr4-camera', new BABYLON.Vector3(0,3.2,-6.5), scene);
-  camera.minZ = .05; camera.maxZ = 180; camera.fov = .82; camera.inertia = 0;
+  camera.minZ = .08; camera.maxZ = 180; camera.fov = .82; camera.inertia = 0;
   scene.activeCamera = camera;
 
   const hemi = new BABYLON.HemisphericLight('hr4-hemi', new BABYLON.Vector3(.1,1,-.15), scene);
-  hemi.intensity = .72;
-  hemi.diffuse = new BABYLON.Color3(.82,.92,1);
-  hemi.groundColor = new BABYLON.Color3(.03,.04,.06);
+  hemi.intensity = .58;
+  hemi.diffuse = new BABYLON.Color3(.78,.89,1);
+  hemi.groundColor = new BABYLON.Color3(.02,.03,.045);
 
   const key = new BABYLON.DirectionalLight('hr4-key', new BABYLON.Vector3(-.35,-1,.45), scene);
-  key.position = new BABYLON.Vector3(18,28,-16); key.intensity = 1.25;
+  key.position = new BABYLON.Vector3(18,28,-16); key.intensity = 1.04;
 
-  const glow = new BABYLON.GlowLayer('hr4-glow', scene, { blurKernelSize: isMobile ? 20 : 34 });
-  glow.intensity = isMobile ? .45 : .62;
+  const glow = new BABYLON.GlowLayer('hr4-glow', scene, { blurKernelSize: isMobile ? 16 : 26 });
+  glow.intensity = isMobile ? .28 : .38;
 
   let pipeline = null;
   try {
@@ -31,7 +31,10 @@
     pipeline.fxaaEnabled = true;
     pipeline.bloomEnabled = !isMobile;
     if (pipeline.bloomEnabled) {
-      pipeline.bloomThreshold = .82; pipeline.bloomWeight = .12; pipeline.bloomKernel = 42; pipeline.bloomScale = .55;
+      pipeline.bloomThreshold = .92;
+      pipeline.bloomWeight = .055;
+      pipeline.bloomKernel = 30;
+      pipeline.bloomScale = .5;
     }
   } catch(_) {}
 
@@ -55,7 +58,7 @@
     emit('mode', mode);
   }
 
-  window.HR4 = { version:'4.1.3', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
+  window.HR4 = { version:'4.1.4', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
 
   document.getElementById('autoMode')?.addEventListener('click',()=>start('auto'));
   document.getElementById('freeMode')?.addEventListener('click',()=>start('free'));
@@ -67,5 +70,5 @@
     scene.render();
   });
   addEventListener('resize',()=>engine.resize());
-  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='SCENE READY · APPROVED ANDROID GUIDE ONLINE · v4.1.3'; emit('ready'); },300);
+  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='SCENE READY · MOVING ANDROID GUIDE ONLINE · v4.1.4'; emit('ready'); },300);
 })();
