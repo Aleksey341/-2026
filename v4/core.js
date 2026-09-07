@@ -58,7 +58,7 @@
     emit('mode', mode);
   }
 
-  window.HR4 = { version:'4.1.4', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
+  window.HR4 = { version:'4.1.5', data:window.HR4_DATA, canvas,engine,scene,camera,glow,pipeline,isMobile,state,on,emit,registerUpdate,start };
 
   document.getElementById('autoMode')?.addEventListener('click',()=>start('auto'));
   document.getElementById('freeMode')?.addEventListener('click',()=>start('free'));
@@ -70,5 +70,5 @@
     scene.render();
   });
   addEventListener('resize',()=>engine.resize());
-  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='SCENE READY · MOVING ANDROID GUIDE ONLINE · v4.1.4'; emit('ready'); },300);
+  setTimeout(()=>{ const el=document.getElementById('bootState'); if(el) el.textContent='SCENE READY · ANDROID ORIENTATION FIXED · v4.1.5'; emit('ready'); },300);
 })();
