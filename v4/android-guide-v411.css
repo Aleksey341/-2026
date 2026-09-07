@@ -1,21 +1,21 @@
-/* v4.1.1 — android guide / start-screen composition */
+/* v4.1.3 — approved BORUP android across hero / board / in-world guide */
 .start-screen{
   place-items:stretch;
   background:
     radial-gradient(circle at 78% 42%,rgba(112,226,255,.15),transparent 30%),
-    linear-gradient(90deg,rgba(2,6,11,.95) 0%,rgba(3,8,14,.82) 48%,rgba(4,10,17,.48) 72%,rgba(2,6,11,.72) 100%);
+    linear-gradient(90deg,rgba(2,6,11,.95) 0%,rgba(3,8,14,.84) 48%,rgba(4,10,17,.52) 72%,rgba(2,6,11,.76) 100%);
   backdrop-filter:none;
 }
 .start-shell{
   position:relative;
   z-index:2;
-  width:min(1500px,100%);
+  width:min(1560px,100%);
   min-height:100%;
   margin:0 auto;
   padding:clamp(32px,6vw,92px);
   display:grid;
-  grid-template-columns:minmax(420px,720px) minmax(280px,1fr);
-  gap:clamp(24px,6vw,100px);
+  grid-template-columns:minmax(420px,720px) minmax(320px,1fr);
+  gap:clamp(24px,5vw,86px);
   align-items:center;
 }
 .start-card{
@@ -25,6 +25,8 @@
   border:0;
   background:none;
   box-shadow:none;
+  position:relative;
+  z-index:3;
 }
 .start-card:before,.start-card:after{display:none}
 .start-card h1{
@@ -40,46 +42,113 @@
 .start-card p{max-width:570px;color:#b4c7d1;font-size:15px;line-height:1.62}
 .mode-grid{grid-template-columns:1fr;max-width:570px;margin-top:34px}
 .mode{min-height:76px;display:grid;grid-template-columns:minmax(180px,.72fr) 1fr;align-items:center;gap:18px;padding:17px 20px;background:linear-gradient(90deg,rgba(10,20,29,.74),rgba(8,16,24,.38));border-color:rgba(189,235,255,.13)}
-.mode.primary{border-color:rgba(135,232,255,.68);box-shadow:inset 3px 0 0 #88e9ff}
+.mode.primary{border-color:rgba(135,232,255,.68);box-shadow:inset 3px 0 0 #88e9ff,0 0 38px rgba(99,220,255,.08)}
 .mode b{margin:0;font-size:13px;letter-spacing:.11em}
 .mode span{font-size:11px;line-height:1.4;color:#7f99a7}
 .boot-state{margin-top:20px;padding-left:12px;border-left:1px solid rgba(128,226,255,.45)}
+
 .start-visual{
   align-self:stretch;
-  display:flex;
-  flex-direction:column;
-  justify-content:flex-end;
-  align-items:flex-end;
-  padding:0 8px 5vh 0;
+  min-height:72vh;
+  position:relative;
   pointer-events:none;
-  text-align:right;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
 }
-.start-visual span{font-size:10px;letter-spacing:.26em;color:#7ea4b4}
-.start-visual b{margin-top:8px;font-size:12px;letter-spacing:.14em;font-weight:560;color:#dff8ff}
-.start-visual i{margin-top:5px;font-style:normal;font-size:10px;letter-spacing:.12em;color:#6c8591}
+.guide-hero{
+  position:absolute;
+  right:clamp(-30px,1vw,18px);
+  bottom:-3vh;
+  width:min(45vw,650px);
+  height:min(88vh,920px);
+  object-fit:contain;
+  object-position:bottom center;
+  filter:drop-shadow(0 0 20px rgba(106,220,255,.26)) drop-shadow(0 0 64px rgba(80,150,255,.18));
+  transform-origin:bottom center;
+  animation:hr4HeroBreath 5.5s ease-in-out infinite;
+}
+@keyframes hr4HeroBreath{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-7px) scale(1.007)}}
+.start-visual .guide-status{
+  position:absolute;
+  right:0;
+  bottom:4.5vh;
+  padding:12px 0 0 22px;
+  border-top:1px solid rgba(130,225,255,.35);
+  text-align:right;
+  z-index:2;
+}
+.start-visual .guide-status span{display:block;font-size:10px;letter-spacing:.26em;color:#7ea4b4}
+.start-visual .guide-status b{display:block;margin-top:8px;font-size:12px;letter-spacing:.14em;font-weight:560;color:#dff8ff}
+.start-visual .guide-status i{display:block;margin-top:5px;font-style:normal;font-size:10px;letter-spacing:.12em;color:#6c8591}
 .start-screen:after{
   content:"";
   position:absolute;
-  right:7vw;
-  top:10vh;
-  width:min(34vw,520px);
-  height:76vh;
+  right:5vw;
+  top:8vh;
+  width:min(42vw,650px);
+  height:82vh;
   border-right:1px solid rgba(135,231,255,.18);
   border-bottom:1px solid rgba(135,231,255,.12);
-  background:linear-gradient(180deg,transparent,rgba(113,226,255,.03));
+  background:linear-gradient(180deg,transparent,rgba(113,226,255,.035));
   clip-path:polygon(15% 0,100% 0,100% 100%,0 100%,0 15%);
   pointer-events:none;
 }
+
+/* The episode board stays the only textual source of truth. The android appears
+   beside it for a short introduction and never carries KPI text in 3D. */
+.board{overflow:visible}
+.board-content{position:relative;z-index:2}
+.board-guide{
+  position:absolute;
+  left:-178px;
+  bottom:-6px;
+  width:164px;
+  height:300px;
+  pointer-events:none;
+  opacity:0;
+  transform:translateX(24px) scale(.96);
+  animation:hr4BoardGuide 3.15s ease both;
+}
+.board-guide img{
+  width:100%;height:100%;object-fit:contain;object-position:bottom center;
+  filter:drop-shadow(0 0 16px rgba(105,220,255,.36));
+}
+.board-guide:after{
+  content:"";
+  position:absolute;left:25%;right:18%;bottom:2px;height:1px;
+  background:#78e5ff;box-shadow:0 0 16px #78e5ff;
+}
+.board-guide span{
+  position:absolute;left:4px;bottom:12px;
+  font-size:8px;letter-spacing:.17em;color:#90c9d8;
+  writing-mode:vertical-rl;transform:rotate(180deg);
+}
+@keyframes hr4BoardGuide{
+  0%{opacity:0;transform:translateX(24px) scale(.96)}
+  18%{opacity:.96;transform:translateX(0) scale(1)}
+  70%{opacity:.90;transform:translateX(0) scale(1)}
+  100%{opacity:.18;transform:translateX(-8px) scale(.99)}
+}
+
 body[data-hr4-mode="auto"] .controls-hint,
 body[data-hr4-mode="auto"] .mobile-pad{display:none!important}
 body[data-hr4-mode="free"] .presenter{display:none!important}
 body[data-hr4-mode="free"] .controls-hint{opacity:.9}
 
+@media(max-width:1100px){
+  .start-shell{grid-template-columns:minmax(390px,620px) 1fr}
+  .guide-hero{width:min(46vw,540px)}
+  .board-guide{left:-138px;width:128px;height:245px}
+}
 @media(max-width:900px){
-  .start-screen{background:linear-gradient(180deg,rgba(2,6,11,.82),rgba(2,6,11,.94))}
+  .start-screen{background:linear-gradient(180deg,rgba(2,6,11,.72),rgba(2,6,11,.94))}
   .start-shell{grid-template-columns:1fr;padding:26px;align-items:end}
-  .start-visual{display:none}
+  .start-visual{position:absolute;inset:0;display:block;min-height:0;opacity:.28;overflow:hidden}
+  .guide-hero{right:-18vw;bottom:-3vh;width:88vw;height:86vh}
+  .start-visual .guide-status{display:none}
   .start-card{max-width:none}
   .start-card h1{font-size:clamp(50px,15vw,86px)}
-  .mode{grid-template-columns:1fr;gap:7px}
+  .mode{grid-template-columns:1fr;gap:7px;background:rgba(7,15,23,.76);backdrop-filter:blur(7px)}
+  .board-guide{display:none}
 }
