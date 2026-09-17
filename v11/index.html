@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#120f1f">
+  <title>HR Sky Office · Итоги 2026 · v11</title>
+  <link rel="stylesheet" href="style-v11.css?v=1102">
+</head>
+<body>
+  <canvas id="game" aria-label="HR Sky Office 2026"></canvas>
+  <div id="hud">
+    <div class="sky-header">
+      <div class="brand"><b>◢</b> Ростелеком <span>HR SKY OFFICE · ИТОГИ 2026</span></div>
+      <div class="tools"><button id="sound">Звук: вкл.</button><button id="help">?</button><button id="full">⛶</button></div>
+    </div>
+    <aside class="sky-status">
+      <small>ОФИС БУДУЩЕГО · ПАНОРАМА 360°</small>
+      <h1>Центральный стол итогов</h1>
+      <p>Выберите одно из четырёх голографических направлений и просмотрите проекты.</p>
+      <div class="sky-progress"><div id="progress"></div><strong id="counter">0 / 4</strong></div>
+    </aside>
+    <div id="target"></div><button id="action" hidden></button>
+    <div class="controls"><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> движение · зажать колёсико — обзор · ЛКМ — действие</div>
+  </div>
+  <dialog id="panel" aria-labelledby="panelTitle">
+    <button id="dismiss" aria-label="Закрыть">✕</button>
+    <small id="eyebrow"></small><h2 id="panelTitle"></h2><div id="panelBody"></div><button id="close">Вернуться в офис</button>
+  </dialog>
+  <section id="start" class="overlay">
+    <div class="intro">
+      <small>РОСТЕЛЕКОМ · ИТОГИ 2026 · CONCEPT v11 · GITHUB</small>
+      <h2><span>HR SKY OFFICE</span>Офис будущего</h2>
+      <p>Панорамный executive-space над городом. Четыре направления года раскрываются на центральном голографическом столе.</p>
+      <button id="begin" disabled>Подготовка офиса…</button>
+      <div id="bootState" class="boot-state">INITIALIZING SKY OFFICE…</div>
+      <p class="note">После входа двери лифта откроются. Подойдите к центральному столу.</p>
+    </div>
+  </section>
+  <section id="ending" class="overlay" hidden>
+    <div class="final-card">
+      <small>ВСЕ НАПРАВЛЕНИЯ 2026 ЗАВЕРШЕНЫ</small>
+      <h2>2027</h2>
+      <p>Будущее начинается сегодня.</p>
+      <div class="final-actions"><button id="finalPlans">Планы 2027</button><button id="restart">Начать заново</button></div>
+    </div>
+  </section>
+  <script src="slides.bundle.js?v=1102"></script>
+  <script type="module" src="game-v11.js?v=1102"></script>
+</body>
+</html>
