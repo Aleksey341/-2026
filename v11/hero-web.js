@@ -61,6 +61,7 @@ export async function createHero() {
     if (!object.isMesh) return;
     object.castShadow = true;
     object.receiveShadow = true;
+    if (object.geometry && !object.geometry.getAttribute('normal')) object.geometry.computeVertexNormals();
     if (object.material) {
       object.material = object.material.clone();
       if ('roughness' in object.material) object.material.roughness = Math.max(.48, object.material.roughness ?? .65);
