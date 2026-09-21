@@ -1,6 +1,7 @@
 {
   "version": 1,
   "character": {
+    "useProceduralSuit": true,
     "model": "assets/models/heroine-purple-walk.glb",
     "height": 1.7,
     "rotation": [
