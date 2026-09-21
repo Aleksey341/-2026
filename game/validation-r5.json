@@ -1,0 +1,41 @@
+{
+  "build": "R5",
+  "browser": "Chromium",
+  "offline": true,
+  "javascriptErrors": 0,
+  "shaderErrors": 0,
+  "environmentViews": 6,
+  "viewResolution": [
+    1254,
+    1254
+  ],
+  "checkedViews": [
+    "four horizontal overlaps",
+    "sky",
+    "park",
+    "sky overlap",
+    "park overlap",
+    "inside",
+    "outside",
+    "top"
+  ],
+  "insideCamera": [
+    54.55,
+    1.778,
+    4.105
+  ],
+  "pavilionBounds": {
+    "x": [
+      44,
+      56
+    ],
+    "z": [
+      -4.5,
+      4.5
+    ]
+  },
+  "limitations": [
+    "Softness may remain in overlap regions.",
+    "City is a painted environment, not 3D geometry."
+  ]
+}

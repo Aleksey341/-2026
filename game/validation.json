@@ -1,0 +1,17 @@
+{
+  "build": "R4",
+  "checks": {
+    "assets": true,
+    "fourChannels": true,
+    "autoTV": true,
+    "worn": true,
+    "locked": true,
+    "unlocked": true,
+    "future": true,
+    "white": true,
+    "cameraInside": true,
+    "cameraClose": true,
+    "spawnClear": true
+  },
+  "errors": []
+}

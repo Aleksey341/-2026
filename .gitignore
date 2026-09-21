@@ -1,0 +1,6 @@
+﻿# Local / generated
+.superpowers/
+game/Play-offline.html
+*.log
+.DS_Store
+Thumbs.db
