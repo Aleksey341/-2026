@@ -1,6 +1,13 @@
 ﻿# Local / generated
 .superpowers/
 game/Play-offline.html
+game/node_modules/
+game/package.json
+game/package-lock.json
+game/assets/models/_backup/
+game/assets/textures/hero/
+game/heroine-inspect.txt
+node_modules/
 *.log
 .DS_Store
 Thumbs.db
