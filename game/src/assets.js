@@ -22,23 +22,17 @@ export class AssetSystem{
   await Promise.all(Object.entries(this.wallSurfaces).map(async([id,surfaces])=>{const c=this.config.walls[id];try{const tex=c.texture?await new T.TextureLoader().loadAsync(assetURL(c.texture)):null;if(tex){tex.colorSpace=T.SRGBColorSpace;tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.repeat.fromArray(c.repeat);tex.center.set(.5,.5);tex.rotation=T.MathUtils.degToRad(c.rotation||0);tex.anisotropy=4}for(const o of surfaces){o.material.map=tex;o.material.color.set(c.color||'#ffffff');o.material.needsUpdate=true}}catch(e){this.warn('Стена '+id,e)}}));
   try{if(this.config.glasses.model){const r=await this.load(this.config.glasses.model);const v=fitModel(r.scene,this.config.glasses.size,this.config.glasses.rotation);for(const o of this.headset.children)o.visible=false;this.headset.add(v);this.prepare(v)}}catch(e){this.warn('VR-очки',e)}
   this.characters={};
-  // Formal suit uses the procedural body in game.js; hoodie GLBs stay unused.
-  if(!this.config.character.useProceduralSuit){
-   for(const [variant,path] of Object.entries({base:this.config.character.model,future:this.config.character.futureModel})){
-    try{const c=this.config.character,r=await this.loader.loadAsync(assetURL(path));const hero=fitModel(r.scene,[1,c.height,1],c.rotation,true);this.player.add(hero);hero.visible=false;this.prepare(hero);const mixer=new T.AnimationMixer(r.scene),actions={},heroBones={};for(const [key,name] of Object.entries(c.animations)){const clip=r.animations.find(x=>x.name===name);if(clip)actions[key]=mixer.clipAction(clip);}
-    hero.traverse(o=>{if(o.isBone&&o.name==='Head')heroBones.head=o;});this.characters[variant]={hero,mixer,actions,heroBones};
-    }catch(e){this.warn('Персонаж '+variant,e);}
-   }
-   this.selectCharacter('base');
-  }else{
-   this.body.visible=true;this.hero=null;this.mixer=null;this.actions={};this.heroBones={};this.variant='procedural';
+  for(const [variant,path] of Object.entries({base:this.config.character.model,future:this.config.character.futureModel})){
+   try{const c=this.config.character,r=await this.loader.loadAsync(assetURL(path));const hero=fitModel(r.scene,[1,c.height,1],c.rotation,true);this.player.add(hero);hero.visible=false;this.prepare(hero);const mixer=new T.AnimationMixer(r.scene),actions={},heroBones={};for(const [key,name] of Object.entries(c.animations)){const clip=r.animations.find(x=>x.name===name);if(clip)actions[key]=mixer.clipAction(clip);}
+   hero.traverse(o=>{if(o.isBone&&o.name==='Head')heroBones.head=o;});this.characters[variant]={hero,mixer,actions,heroBones};
+   }catch(e){this.warn('Персонаж '+variant,e);}
   }
-}
+  this.selectCharacter('base');
+ }
  prepare(root){root.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;o.frustumCulled=false}})}
  rebuildCollisions(){for(let i=this.obstacles.length-1;i>=0;i--)if(this.groups.has(this.obstacles[i].slot))this.obstacles.splice(i,1);for(const [id,c] of Object.entries(this.config.objects)){if(!c.collision||c.enabled===false)continue;const group=this.groups.get(id);let b=new T.Box3();group.traverse(o=>{if(o.isMesh&&this.visible(o,group)){o.geometry.computeBoundingBox();b.union(o.geometry.boundingBox.clone().applyMatrix4(o.matrixWorld))}});if(b.isEmpty())continue;const d=b.getSize(new T.Vector3()),center=b.getCenter(new T.Vector3());this.obstacles.push({slot:id,x:center.x,z:center.z,w:d.x/2+.23,d:d.z/2+.23});}}
  visible(o,root){for(let p=o;p&&p!==root;p=p.parent)if(!p.visible)return false;return true}
  selectCharacter(variant){
-  if(this.config.character.useProceduralSuit){this.body.visible=true;this.hero=null;this.variant='procedural';return;}
   const c=this.characters[variant];if(!c)return;
   for(const [key,v] of Object.entries(this.characters))v.hero.visible=key===variant;
   Object.assign(this,c);this.variant=variant;this.body.visible=false;this.activeClip=null;this.mixer.stopAllAction();

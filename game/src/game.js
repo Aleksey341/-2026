@@ -10,7 +10,7 @@ const renderer=new T.WebGLRenderer({canvas:$('game'),antialias:true,powerPrefere
 const camera=new T.PerspectiveCamera(53,innerWidth/innerHeight,.06,180),world=new T.Group();scene.add(world);
 let capture=null;const records={};const addWorld=world.add.bind(world);world.add=(...objects)=>{addWorld(...objects);if(capture)(records[capture]??=[]).push(...objects);return world};
 const mat=(color,roughness=.65,metalness=0)=>new T.MeshStandardMaterial({color,roughness,metalness});
-const M={wall:mat('#e3e0db'),ceiling:mat('#f5f1e9'),floor:mat('#b7b9bf',.4),trim:mat('#dad8d5'),wood:mat('#c9a27e'),dark:mat('#242938',.4),chair:mat('#63758f',.91),purple:mat('#1c2a45',.72,.18),pants:mat('#172033',.78,.12),blouse:mat('#f2f0ea',.86),skin:mat('#d8a286',.78),hair:mat('#382822',.68),shoe:mat('#16181f',.55,.25),metal:mat('#9d9fa6',.3,.7),gold:mat('#c7a779',.28,.65),leaf:mat('#386543'),black:mat('#101622'),white:mat('#ede9e2')};
+const M={wall:mat('#e3e0db'),ceiling:mat('#f5f1e9'),floor:mat('#b7b9bf',.4),trim:mat('#dad8d5'),wood:mat('#c9a27e'),dark:mat('#242938',.4),chair:mat('#63758f',.91),purple:mat('#7445ce',.88),pants:mat('#343342',.9),skin:mat('#d8a286',.78),hair:mat('#382822',.68),shoe:mat('#efedef',.7),metal:mat('#9d9fa6',.3,.7),gold:mat('#c7a779',.28,.65),leaf:mat('#386543'),black:mat('#101622'),white:mat('#ede9e2')};
 const emissive=(c,p=.7)=>new T.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:p});
 function mesh(geo,m,x=0,y=0,z=0,p=world){const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;p.add(o);return o}
 function box(w,h,d,m,x,y,z,p=world){return mesh(new T.BoxGeometry(w,h,d),m,x,y,z,p)}
@@ -81,24 +81,16 @@ capture=null;
 // Indoor plants with individually curved broad leaves.
 let plantIndex=0;function plant(x,z){capture=`plant-${++plantIndex}`;cyl(.23,.17,.49,M.white,x,.245,z);cyl(.2,.2,.015,mat('#3c332c'),x,.49,z);for(let i=0;i<12;i++){const a=i*2.4,h=.9+(i%4)*.18,dx=Math.cos(a)*.26,dz=Math.sin(a)*.26;rod([x,.49,z],[x+dx,h,z+dz],.009,M.leaf);const l=ell(.095,.24,.023,M.leaf,x+dx*1.12,h+.1,z+dz*1.12);l.rotation.set(.28,a,-Math.cos(a)*.6)}obstacle(x,z,.5,.5)}plant(-3.57,-2.82);plant(3.55,-2.95);plant(3.57,2.73);
 capture=null;
-// Formal navy suit heroine (procedural): blazer, blouse, trousers — not the casual hoodie GLB.
+// Stylised adult heroine: shaped knitwear, straight trousers, smooth low bun.
 capture=null;
 const player=new T.Group();player.position.set(.9,0,1.63);scene.add(player);const body=new T.Group();player.add(body);
-// Blouse torso under open jacket front
-profile([[.12,0],[.155,.06],[.17,.2],[.165,.34],[.13,.42]],M.blouse,0,.9,0,body,1,.7);
-// Tailored jacket body + peaked shoulders
-profile([[.155,0],[.21,.05],[.245,.18],[.25,.34],[.21,.46],[.14,.5]],M.purple,0,.88,0,body,1,.72);
-box(.42,.08,.18,M.purple,0,1.34,0,body); // shoulder line
-for(const s of[-1,1]){box(.12,.22,.02,M.purple,s*.09,1.22,-.11,body);box(.1,.02,.12,M.purple,s*.16,1.36,-.02,body)} // lapels + shoulder pads
-box(.025,.035,.013,M.metal,0,1.12,-.125,body); // jacket button
-box(.11,.14,.018,M.blouse,0,1.28,-.12,body); // collar / blouse V
-// Hips / skirt-of-jacket hem
-ell(.2,.08,.14,M.purple,0,.9,0,body);
-const legs=[],arms=[];for(const side of[-1,1]){const leg=new T.Group();leg.position.set(side*.09,.88,0);body.add(leg);profile([[.078,0],[.082,.1],[.076,.3],[.07,.52],[.066,.72]],M.pants,0,-.72,0,leg,1,.92);rounded(.14,.055,.26,.04,M.shoe,0,-.79,-.04,leg);legs.push(leg);
-const arm=new T.Group();arm.position.set(side*.23,1.3,0);arm.rotation.z=side*.1;body.add(arm);profile([[.055,0],[.075,.05],[.08,.16],[.075,.28],[.058,.38]],M.purple,0,-.37,0,arm,1,.95);cyl(.05,.048,.05,M.blouse,0,-.4,0,arm);ell(.04,.07,.028,M.skin,0,-.48,0,arm);arms.push(arm)}
+profile([[.145,0],[.19,.07],[.225,.22],[.23,.36],[.195,.43],[.13,.47]],M.purple,0,.88,0,body,1,.64);profile([[.105,0],[.11,.035],[.097,.125],[.092,.13]],M.purple,0,1.32,0,body,1,.8);profile([[.152,0],[.16,.04],[.155,.085]],M.purple,0,.87,0,body,1,.75);box(.006,.19,.009,M.metal,0,1.33,-.109,body);box(.025,.035,.013,M.metal,0,1.24,-.12,body);
+ell(.19,.14,.13,M.pants,0,.87,0,body);
+const legs=[],arms=[];for(const side of[-1,1]){const leg=new T.Group();leg.position.set(side*.096,.85,0);body.add(leg);profile([[.085,0],[.09,.12],[.083,.32],[.088,.57],[.091,.74]],M.pants,0,-.74,0,leg,1,.94);rounded(.157,.072,.275,.052,M.shoe,0,-.817,-.049,leg);rounded(.162,.028,.283,.05,M.white,0,-.835,-.049,leg);for(let j=0;j<3;j++)box(.09,.006,.012,M.white,0,-.735,-.065-j*.025,leg);legs.push(leg);
+const arm=new T.Group();arm.position.set(side*.206,1.275,0);arm.rotation.z=side*.12;body.add(arm);profile([[.053,0],[.073,.055],[.079,.17],[.076,.28],[.061,.38]],M.purple,0,-.37,0,arm,1,.95);cyl(.052,.05,.065,M.purple,0,-.389,0,arm);ell(.042,.073,.029,M.skin,0,-.474,-.002,arm);ell(.021,.041,.024,M.skin,-side*.031,-.451,-.022,arm);arms.push(arm)}
 const head=new T.Group();head.position.y=1.54;body.add(head);cyl(.06,.072,.12,M.skin,0,-.13,0,head);ell(.119,.162,.11,M.skin,0,.018,-.005,head);ell(.09,.085,.083,M.skin,0,-.065,-.031,head);for(let s of[-1,1]){ell(.022,.034,.02,M.skin,s*.119,.005,0,head);ell(.008,.008,.005,M.metal,s*.12,-.018,-.017,head)}
-// Hair: high bun + front lock (keeps heroine identity)
-const haircap=mesh(new T.SphereGeometry(1,40,24,0,Math.PI*2,0,Math.PI*.53),M.hair,0,.047,.013,head);haircap.scale.set(.125,.139,.118);ell(.115,.126,.075,M.hair,0,.005,.071,head);ell(.069,.068,.059,M.hair,0,-.079,.119,head);ell(.055,.055,.055,M.hair,0,.16,.02,head);
+// Hair cap covers the rear of the head; a single swept front lock.
+const haircap=mesh(new T.SphereGeometry(1,40,24,0,Math.PI*2,0,Math.PI*.53),M.hair,0,.047,.013,head);haircap.scale.set(.125,.139,.118);ell(.115,.126,.075,M.hair,0,.005,.071,head);ell(.069,.068,.059,M.hair,0,-.079,.119,head);
 const lockCurve=new T.CatmullRomCurve3([new T.Vector3(.071,.151,-.033),new T.Vector3(-.041,.132,-.091),new T.Vector3(-.099,.06,-.1),new T.Vector3(-.104,-.048,-.091),new T.Vector3(-.091,-.202,-.06)]);mesh(new T.TubeGeometry(lockCurve,28,.017,8,false),M.hair,0,0,0,head);
 // Almond eyes with whites, brown irises, lashes, brows, nose and lips.
 for(let s of[-1,1]){ell(.033,.016,.009,mat('#f0e7df'),s*.047,.028,-.106,head);ell(.0115,.012,.004,mat('#65422d'),s*.047,.027,-.115,head);ell(.006,.008,.002,M.black,s*.047,.027,-.119,head);ell(.003,.003,.001,M.white,s*.044,.031,-.121,head);const brow=ell(.034,.006,.007,M.hair,s*.047,.063,-.104,head);brow.rotation.z=s*.11;const lid=ell(.034,.003,.004,M.hair,s*.047,.042,-.11,head)}ell(.014,.03,.022,M.skin,0,-.005,-.108,head);ell(.027,.004,.007,mat('#a66762'),0,-.055,-.104,head);ell(.023,.005,.006,mat('#c18579'),0,-.061,-.102,head);
