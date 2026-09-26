@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+  <meta name="theme-color" content="#071820">
+  <title>Итоги 2026 · HR Elevator · v12</title>
+  <link rel="stylesheet" href="style.css?v=1200">
+</head>
+<body>
+  <canvas id="game" aria-label="Интерактивные итоги 2026 от первого лица"></canvas>
+
+  <div id="hud">
+    <div class="topbar">
+      <div class="brand"><i></i><strong>Ростелеком</strong><span>ИТОГИ 2026 · HR ELEVATOR</span></div>
+      <div class="progress"><span id="progressText">0 / 4</span><b id="progressBar"></b></div>
+    </div>
+    <div id="reticle"><i></i></div>
+    <div id="prompt" hidden></div>
+    <button id="action" hidden type="button">ВЗАИМОДЕЙСТВОВАТЬ</button>
+    <div id="desktopHelp">WASD · движение &nbsp;|&nbsp; мышь · обзор &nbsp;|&nbsp; E / ЛКМ · действие</div>
+  </div>
+
+  <div id="mobile" hidden>
+    <div id="stick"><i></i></div>
+    <div id="look"></div>
+    <button id="mobileAction" hidden type="button">НАЖАТЬ</button>
+  </div>
+
+  <section id="intro" class="overlay">
+    <div class="intro-card">
+      <small>РОСТЕЛЕКОМ · ИТОГИ 2026</small>
+      <h1>Поднимитесь<br><span>по этажам года</span></h1>
+      <p>Интерактивное путешествие от первого лица. Каждый этаж — одно направление HR. Лифт откроет финальный уровень 2027 после прохождения всех четырёх.</p>
+      <button id="start" disabled>Загрузка пространства…</button>
+      <div id="boot">ИНИЦИАЛИЗАЦИЯ…</div>
+    </div>
+  </section>
+
+  <dialog id="card">
+    <button id="cardClose" class="x">×</button>
+    <small id="cardFloor"></small>
+    <h2 id="cardTitle"></h2>
+    <strong id="cardMetric"></strong>
+    <p id="cardText"></p>
+    <button id="cardOk">Продолжить</button>
+  </dialog>
+
+  <section id="travel" class="travel" hidden>
+    <div><span id="travelFloor">ЭТАЖ 01</span><b id="travelTitle">БЫСТРЫЙ НАЙМ</b></div>
+  </section>
+
+  <section id="finale" class="overlay" hidden>
+    <div class="final-card">
+      <small>ВСЕ ЭТАЖИ 2026 ПРОЙДЕНЫ</small>
+      <h2>2027</h2>
+      <p>Следующий этаж уже открыт.</p>
+      <button id="restart">Пройти ещё раз</button>
+    </div>
+  </section>
+
+  <script type="module" src="game.js?v=1200"></script>
+</body>
+</html>
