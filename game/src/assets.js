@@ -17,7 +17,7 @@ function pulse(t,a,b){if(t<=a||t>=b)return 0;const m=(a+b)/2;return t<m?smooth01
 function addEuler(base,x=0,y=0,z=0){return base.clone().multiply(new T.Quaternion().setFromEuler(new T.Euler(x,y,z,'XYZ'))).toArray()}
 
 export class AssetSystem{
- constructor(x){Object.assign(this,x);this.groups=new Map();this.fallback=new Map();this.errors=[];this.hero=null;this.activeClip=null;this.mixer=null;this.actions={};this.loader=new GLTFLoader();this.cache=new Map();this.motionState='idle';this.motionTime=0;this.motionSpeed=0;this.gesture=null;this.characterTime=0;}
+ constructor(x){Object.assign(this,x);this.groups=new Map();this.fallback=new Map();this.errors=[];this.hero=null;this.activeClip=null;this.mixer=null;this.actions={};this.loader=new GLTFLoader();this.cache=new Map();this.motionState='idle';this.motionTime=0;this.motionSpeed=0;this.gesture=null;this.characterTime=0;this.lastPlayerPos=null;this.lastPlayerYaw=0;this.visualLag=new T.Vector3();this.visualYawLag=0;}
  warn(name,e){this.errors.push(`${name}: ${e.message||e}`);console.warn(name,e);const node=document.getElementById('asset-status');if(node){node.hidden=false;node.textContent='Не загружено ассетов: '+this.errors.length;node.title=this.errors.join('\n')}const details=document.getElementById('asset-errors');if(details)details.textContent=this.errors.join('\n');}
  async load(path){if(!path)return null;if(!this.cache.has(path))this.cache.set(path,this.loader.loadAsync(assetURL(path)));const r=await this.cache.get(path);if(path===this.config.character.model)return r;return {...r,scene:r.scene.clone(true)};}
  async initialize(){
@@ -131,7 +131,7 @@ export class AssetSystem{
  selectCharacter(variant){
   const c=this.characters[variant];if(!c)return;
   for(const [key,v] of Object.entries(this.characters))v.hero.visible=key===variant;
-  Object.assign(this,c);this.variant=variant;this.body.visible=false;this.activeClip=null;this.activeAction=null;this.motionState='idle';this.motionTime=0;this.motionSpeed=0;this.gesture=null;this.mixer.stopAllAction();this._play('idle',0,true);
+  Object.assign(this,c);this.variant=variant;this.body.visible=false;this.activeClip=null;this.activeAction=null;this.motionState='idle';this.motionTime=0;this.motionSpeed=0;this.gesture=null;this.lastPlayerPos=this.player.position.clone();this.lastPlayerYaw=this.player.rotation.y;this.visualLag.set(0,0,0);this.visualYawLag=0;this.hero.position.set(0,0,0);this.hero.rotation.set(0,0,0);this.mixer.stopAllAction();this._play('idle',0,true);
  }
  trigger(name='interact'){
   if(!this.hero||!this.actions[name])return 0;
@@ -139,7 +139,19 @@ export class AssetSystem{
  }
  boneWorld(name){const b=this.heroBones?.[name];if(!b)return null;return b.getWorldPosition(new T.Vector3());}
  update(dt,moving,state,motion={}){if(!this.hero)return;
-  this.characterTime+=dt;this.motionTime+=dt;const speed=Math.max(0,motion.speed||0),max=Math.max(.1,motion.maxSpeed||1.65),norm=T.MathUtils.clamp(speed/max,0,1.2);this.motionSpeed=T.MathUtils.damp(this.motionSpeed,norm,moving?7:10,dt);
+  this.characterTime+=dt;this.motionTime+=dt;
+  const m=motion&&typeof motion==='object'?motion:{};
+  const pos=this.player.position.clone(),prev=this.lastPlayerPos||pos.clone(),delta=pos.clone().sub(prev);
+  const measured=dt>1e-5?Math.hypot(delta.x,delta.z)/dt:0;
+  const yaw=this.player.rotation.y,dyaw=Math.atan2(Math.sin(yaw-this.lastPlayerYaw),Math.cos(yaw-this.lastPlayerYaw));
+  const speed=Number.isFinite(m.speed)?Math.max(0,m.speed):(moving?Math.max(measured,1.15):measured);
+  const max=Math.max(.1,m.maxSpeed||1.65),norm=T.MathUtils.clamp(speed/max,0,1.2);
+  const turn=Number.isFinite(m.turn)?T.MathUtils.clamp(m.turn,-1,1):T.MathUtils.clamp(dt>1e-5?dyaw/(dt*4):0,-1,1);
+  this.lastPlayerPos.copy(pos);this.lastPlayerYaw=yaw;
+  this.visualLag.addScaledVector(delta,-.38);this.visualLag.x=T.MathUtils.damp(this.visualLag.x,0,11,dt);this.visualLag.z=T.MathUtils.damp(this.visualLag.z,0,11,dt);
+  this.visualYawLag-=dyaw*.45;this.visualYawLag=T.MathUtils.damp(this.visualYawLag,0,10,dt);
+  this.hero.position.x=this.visualLag.x;this.hero.position.z=this.visualLag.z;this.hero.rotation.y=this.visualYawLag;
+  this.motionSpeed=T.MathUtils.damp(this.motionSpeed,norm,moving?7:10,dt);
   const current=this.motionState;
   if(this.gesture){const a=this.actions[this.gesture],duration=a?.getClip().duration||1;if(this.motionTime>=duration-.04){this.gesture=null;this._play(this.motionSpeed>.12?'walk':'idle',.18,true)}}
   else if(this.motionSpeed>.12){
@@ -151,13 +163,13 @@ export class AssetSystem{
   }
   if(this.actions.walk&&this.motionState==='walk')this.actions.walk.setEffectiveTimeScale(T.MathUtils.clamp(speed/1.55,.62,1.24));
   this.mixer.update(dt);
-  const turn=T.MathUtils.clamp(motion.turn||0,-1,1),lean=turn*.045*this.motionSpeed;
+  const lean=turn*.045*this.motionSpeed;
   const chest=this.heroBones?.Chest,spine=this.heroBones?.Spine,head=this.heroBones?.Head,hips=this.heroBones?.Hips;
   if(hips)hips.rotateZ(-lean*.45);if(spine)spine.rotateZ(lean*.5);if(chest)chest.rotateZ(lean);if(head){head.rotateZ(-lean*.55);head.rotateY(turn*.025*this.motionSpeed)}
   this.hero.updateMatrixWorld(true);
   this.headset.visible=this.variant!=='future';
   const attachBone=(name,offset)=>{const b=this.heroBones?.[name];if(!b)return false;const pos=b.getWorldPosition(new T.Vector3());this.player.worldToLocal(pos);pos.add(new T.Vector3(...offset));this.player.attach(this.headset);this.headset.position.copy(pos);this.headset.rotation.set(0,0,0);return true;};
-  if(state==='wearing'&&(motion.wearProgress||0)>.22)attachBone('RightHand',this.config.character.handOffset||[0,0,0]);
+  if(state==='wearing'&&(m.wearProgress||0)>.22)attachBone('RightHand',this.config.character.handOffset||[0,0,0]);
   else if(state==='worn')attachBone('Head',this.config.character.headOffset||[0,-.02,-.025]);
  }
 }
