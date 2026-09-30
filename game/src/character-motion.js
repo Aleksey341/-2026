@@ -24,7 +24,7 @@ export class MotionDrive {
     if (hasInput) this.intentYaw = Math.atan2(-direction.x, -direction.z);
     // Look/shoulders can lead a turn; translation slows during a sharp reversal.
     const error = this.intentYaw === null ? 0 : angleDelta(this.intentYaw, player.rotation.y);
-    const speedLimit = 1.65 * (1 - .72 * smooth(Math.abs(error) / Math.PI));
+    const speedLimit = 1.05 * (1 - .90 * smooth(Math.abs(error) / 1.2));
     const desired = direction.multiplyScalar(this.startDelay > 0 ? 0 : speedLimit);
     if (!hasInput) desired.set(0, 0, 0);
     const change = desired.sub(this.velocity);
@@ -118,9 +118,9 @@ export class CharacterMotion {
   startStep(leg, velocity, speed) {
     leg.swing = true; leg.progress = 0; leg.from.copy(leg.plant); leg.fromYaw = leg.yaw;
     leg.toYaw = this.player.rotation.y;
-    leg.duration = clamp(.38 - speed * .045, .29, .38);
+    leg.duration = clamp(.42 - speed * .025, .34, .42);
     // Predict where the pelvis will be at landing plus half the next support phase.
-    leg.target.copy(this.nominal(leg)).addScaledVector(velocity, leg.duration * 1.8);
+    leg.target.copy(this.nominal(leg)).addScaledVector(velocity, leg.duration * 1.5);
     const reach = (leg.upper + leg.lower) * 1.4;
     const offset = leg.target.clone().sub(leg.from); offset.y = 0;
     if (offset.length() > reach) { offset.setLength(reach); leg.target.copy(leg.from).add(offset); }
@@ -153,10 +153,13 @@ export class CharacterMotion {
     for (const leg of this.legs) {
       leg.age += dt;
       if (!leg.swing) continue;
-      leg.progress = Math.min(1, leg.progress + dt / leg.duration);
-      // Early swing can adapt to a stop or reversal; late swing commits to its landing.
-      if (leg.progress < .65) {
-        const landing = this.nominal(leg).addScaledVector(velocity, leg.duration * (1.8 - leg.progress));
+      const supportLeg = this.legs[1-leg.index];
+      const supportError = this.nominal(supportLeg).distanceTo(supportLeg.plant);
+      const urgency = 1 + 1.5 * smooth((supportError - .24) / .12);
+      leg.progress = Math.min(1, leg.progress + dt / leg.duration * urgency);
+      // Adapt the landing until contact, including a late stop or reversal.
+      if (leg.progress < .97) {
+        const landing = this.nominal(leg).addScaledVector(velocity, leg.duration * (1.5 - leg.progress));
         const offset = landing.clone().sub(leg.from); offset.y = 0;
         if (offset.length() > (leg.upper + leg.lower) * 1.4) offset.setLength((leg.upper + leg.lower) * 1.4);
         landing.copy(leg.from).add(offset); landing.y = this.player.position.y + leg.height;
@@ -168,16 +171,17 @@ export class CharacterMotion {
         leg.plant.copy(leg.target); leg.yaw = leg.toYaw; leg.swing = false; leg.age = 0; this.activeLeg = null;
       }
     }
-    const activity = clamp(this.speed / 1.65, 0, 1);
+    const activity = clamp(this.speed / 1.05, 0, 1);
     const swingLeg = this.legs.find(l => l.swing);
     const p = swingLeg?.progress || 0;
     const support = swingLeg ? 1 - swingLeg.index : null;
     const transfer = swingLeg ? Math.sin(Math.PI * p) : 0;
     const supportX = support === null ? 0 : this.legs[support].home.x;
     const hips = this.bones.Hips;
-    const scale = this.hero.getWorldScale(new T.Vector3()).y;
-    // Lower the pelvis slightly to keep knees soft, then shift above the support foot.
-    hips.position.y += (-.065 + .012 * Math.sin(Math.PI * p) * activity + .002 * Math.sin(this.time * 2.1)) / scale;
+    const scale = hips.parent.getWorldScale(new T.Vector3()).y;
+    // Offsets are world metres: use the bone parent scale, not the outer wrapper.
+    // Preserve standing height and use only a small gait-related displacement.
+    hips.position.y += (-.002 - .006 * activity + .005 * Math.sin(Math.PI * p) * activity + .001 * Math.sin(this.time * 2.1)) / scale;
     hips.position.x += (supportX * .18 * transfer + .009 * (motion.anticipation || 0)) / scale;
     const phase = this.gaitPhase;
     const twist = .055 * Math.sin(phase) * activity;
@@ -216,13 +220,13 @@ export class CharacterMotion {
       if (leg.swing) {
         const t = leg.progress, travel = leg.from.distanceTo(leg.target);
         ankle.lerpVectors(leg.from, leg.target, smooth(t));
-        ankle.y += Math.sin(Math.PI * t) ** 1.35 * clamp(.035 + travel * .13, .035, .105);
+        ankle.y += Math.sin(Math.PI * t) ** 1.35 * clamp(.012 + travel * .055, .012, .045);
         yaw = leg.fromYaw + angleDelta(leg.toYaw, leg.fromYaw) * smooth(t);
-        roll = -.18 * Math.sin(Math.PI * t) + .16 * smooth((t - .72) / .28);
+        roll = -.18 * Math.sin(Math.PI * t) + .10 * smooth((t - .72) / .28);
       } else {
         // Heel settles after contact; the trailing foot rolls over the toe before lift.
-        roll = .16 * (1 - smooth(leg.age / .09));
-        if (swingLeg && swingLeg !== leg && measured > .15) roll -= .20 * smooth((p - .72) / .28);
+        roll = .10 * (1 - smooth(leg.age / .09));
+        if (swingLeg && swingLeg !== leg && measured > .15) roll -= .12 * smooth((p - .72) / .28);
       }
       leg.roll = roll;
       const yawQ = new T.Quaternion().setFromAxisAngle(UP, yaw);
@@ -247,8 +251,8 @@ export class CharacterMotion {
       const height = Math.sqrt(Math.max(.01, reach * reach - horizontal * horizontal));
       requiredDrop = Math.max(requiredDrop, hip.y - ankle.y - height);
     }
-    this.pelvisDrop = Math.max(requiredDrop, damp(this.pelvisDrop, requiredDrop, 8, dt));
-    hips.position.y -= Math.min(.16, this.pelvisDrop) / scale;
+    this.pelvisDrop = Math.max(requiredDrop, damp(this.pelvisDrop, requiredDrop, 25, dt));
+    hips.position.y -= Math.min(.065, this.pelvisDrop) / scale;
     this.player.updateWorldMatrix(true, true);
     for (const leg of this.legs) {
       leg.error = solveLegIK(leg, leg.solvedTarget, forward);
