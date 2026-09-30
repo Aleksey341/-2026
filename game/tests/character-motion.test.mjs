@@ -56,6 +56,23 @@ for(const variant of ['purple','white']) {
   console.log(variant,'lowest skinned vertex',minimum);
   assert.ok(minimum>-.015,`visible mesh penetrates floor: ${minimum}`);
  });
+ test(`${variant}: upright posture through idle, walking and stopping`,async()=>{
+  const f=await fixture(variant), initialHeight=f.bones.Hips.getWorldPosition(new T.Vector3()).y;
+  let maxDrop=0,maxSupportFlex=0;
+  for(let i=0;i<600;i++){
+   tick(f,1/60,i<100||i>480?{x:0,z:0}:{x:0,z:-1});
+   const drop=initialHeight-f.bones.Hips.getWorldPosition(new T.Vector3()).y;
+   maxDrop=Math.max(maxDrop,drop);
+   if(i===90||i===590)assert.ok(drop<.012,'idle must not crouch');
+   for(const l of f.motion.legs){
+    const hip=l.thigh.getWorldPosition(new T.Vector3()),knee=l.shin.getWorldPosition(new T.Vector3()),foot=l.foot.getWorldPosition(new T.Vector3());
+    const flex=180-hip.sub(knee).angleTo(foot.sub(knee))*180/Math.PI;
+    if(!l.swing)maxSupportFlex=Math.max(maxSupportFlex,flex);
+   }
+  }
+  assert.ok(maxDrop<.055,`pelvis drop ${maxDrop}`);
+  assert.ok(maxSupportFlex<45,`support knee flex ${maxSupportFlex}`);
+ });
  test(`${variant}: pause, teleport, attention and bounded idle`,async()=>{
   const f=await fixture(variant);
   for(let i=0;i<40;i++)tick(f,1/60,{x:1,z:0});
@@ -75,7 +92,7 @@ test('drive: anticipation, acceleration, diagonal speed and independent frame ra
   const player=new T.Group(),drive=new MotionDrive();let previous=0;
   for(let i=0;i<fps*4;i++){
    const m=drive.update(1/fps,player,{x:1,z:-1},()=>false);
-   assert.ok(m.speed<=1.65+1e-8);assert.ok(Math.abs(m.speed-previous)<=4.2/fps+1e-7);previous=m.speed;
+   assert.ok(m.speed<=1.05+1e-8);assert.ok(Math.abs(m.speed-previous)<=4.2/fps+1e-7);previous=m.speed;
    if(i===0)assert.equal(player.position.length(),0,'weight transfer precedes translation');
   }
   results.push(player.position.length());
