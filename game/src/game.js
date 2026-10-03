@@ -1,3 +1,4 @@
+import {MotionDrive} from './character-motion.js';
 import {makeReactorRoom} from './reactor-room.js';
 import {makeTelevision} from './television.js';
 import {energyReactor} from './retro.js';
@@ -105,7 +106,7 @@ const tableGroup=assets.groups.get('table');const spawn=CONFIG.character.spawn;p
 function glassesRest(){world.attach(headset);const p=new T.Vector3(...CONFIG.glasses.tableOffset);tableGroup.localToWorld(p);headset.position.copy(world.worldToLocal(p));headset.rotation.set(0,0,0);}
 function setGlasses(anchor){if(assets.hero){player.attach(headset);headset.rotation.set(0,0,0)}else{(anchor==='head'?head:arms[1]).attach(headset);headset.position.set(...(anchor==='head'?[0,.016,-.14]:[0,-.48,-.055]));headset.rotation.set(0,0,0)}}
 glassesRest();const glassesHome=headset.position.clone();
-let state='table',yaw=0,pitch=.32,dist=3.45,phase=0,anim=0,wearProgress=0,paused=false,drag=false,lastX=0,lastY=0;const keys=new Set();const action=$('action'),mission=$('mission'),badge=$('badge');
+let state='table',yaw=0,pitch=.32,dist=3.45,phase=0,anim=0,wearProgress=0,paused=false,drag=false,lastX=0,lastY=0;const keys=new Set();const drive=new MotionDrive();let attention=null,attentionTime=0;const action=$('action'),mission=$('mission'),badge=$('badge');
 function near(){return Math.hypot(player.position.x-glassesHome.x,player.position.z-glassesHome.z)<CONFIG.glasses.range}
 function doorNear(){return roomIndex===0&&state==='worn'&&door.position.z>doorZ+doorWidth*.85&&Math.hypot(player.position.x-(W/2-.4),player.position.z-doorZ)<1.9;}
 function enterRoom(next){
@@ -113,7 +114,7 @@ function enterRoom(next){
  yaw=0;pitch=.32;dist=3.45;camera.fov=next===1?62:53;camera.updateProjectionMatrix();
  if(next===1){player.position.set(0,0,CONFIG.reactor.centerZ+6.2);player.rotation.y=0;scene.background.set('#26383b');sun.intensity=.45;fill.intensity=.35;}
  if(next===2){player.position.set(future.center.x+3.2,0,future.center.z+1.9);player.rotation.y=Math.PI/2;yaw=.55;pitch=.22;dist=2.65;scene.background.set('#c6d7e8');sun.intensity=2.2;fill.intensity=.8;}
- camera.position.copy(player.position).add(next===2?new T.Vector3(Math.sin(yaw)*Math.cos(pitch)*dist,1.2+Math.sin(pitch)*dist,Math.cos(yaw)*Math.cos(pitch)*dist):new T.Vector3(0,2.3,3.2));if(next===1){camera.position.x=T.MathUtils.clamp(camera.position.x,hall.bounds.minX+.15,hall.bounds.maxX-.15);camera.position.z=T.MathUtils.clamp(camera.position.z,hall.bounds.minZ+.15,hall.bounds.maxZ-.15);}camera.lookAt(player.position.clone().add(new T.Vector3(0,1.2,0)));updateChapter();
+ camera.position.copy(player.position).add(next===2?new T.Vector3(Math.sin(yaw)*Math.cos(pitch)*dist,1.2+Math.sin(pitch)*dist,Math.cos(yaw)*Math.cos(pitch)*dist):new T.Vector3(0,2.3,3.2));if(next===1){camera.position.x=T.MathUtils.clamp(camera.position.x,hall.bounds.minX+.15,hall.bounds.maxX-.15);camera.position.z=T.MathUtils.clamp(camera.position.z,hall.bounds.minZ+.15,hall.bounds.maxZ-.15);}camera.lookAt(player.position.clone().add(new T.Vector3(0,1.2,0)));drive.reset();assets.resetMotion();attention=null;updateChapter();
 }
 function updateChapter(){
  $('room-title').textContent=['Начало путешествия','Запуск HR будущего','Комната будущего'][roomIndex];
@@ -129,10 +130,10 @@ function act(){
  if(doorNear()){enterRoom(1);return;}
  if(state!=='table')return;
  if(!near()){mission.textContent='Подойдите к очкам на ближнем краю стола.';return;}
- player.rotation.y=Math.atan2(player.position.x-glassesHome.x,player.position.z-glassesHome.z);state='worn';anim=0;setGlasses('head');reveal.visible=true;badge.textContent='VR включён';mission.textContent='Дверь открывается. Подойдите и нажмите «Войти».';
+ attention=glassesHome.clone();attentionTime=1.8;state='worn';anim=0;setGlasses('head');reveal.visible=true;badge.textContent='VR включён';mission.textContent='Дверь открывается. Подойдите и нажмите «Войти».';
 }
 const escapeText=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function openProjects(i){selectedPod=i;uiOpen=true;keys.clear();hall.pods[i].opened=true;$('project-modal').hidden=false;showProjectList();}
+function openProjects(i){attention=hall.pods[i].g.position.clone().add(new T.Vector3(0,1.6,0));attentionTime=2;drive.reset();selectedPod=i;uiOpen=true;keys.clear();hall.pods[i].opened=true;$('project-modal').hidden=false;showProjectList();}
 function showProjectList(){const i=selectedPod,t=hall.themes[i];$('project-title').textContent=t.name;$('project-copy').textContent=t.tag;
  $('project-content').innerHTML=t.cards.map((c,j)=>'<button class="project-choice" data-project="'+j+'">'+(hall.projects[i].has(j)?'✓ ':'')+escapeText(c[1])+'</button>').join('');
  $('project-content').querySelectorAll('[data-project]').forEach(b=>b.onclick=()=>showProject(Number(b.dataset.project)));$('project-back').hidden=true;
@@ -144,7 +145,7 @@ function showProject(j){const i=selectedPod,t=hall.themes[i],c=t.cards[j];$('pro
 function closeProjects(){uiOpen=false;$('project-modal').hidden=true;if(selectedPod!==null)hall.pods[selectedPod].opened=false;selectedPod=null;keys.clear();}
  $('project-close').onclick=closeProjects;
 action.onclick=act;
-function reset(){sun.position.set(7,7,1);sun.target.position.set(-2,0,-2);assets.selectCharacter('base');headset.visible=true;$('future-controls').hidden=true;camera.fov=53;camera.updateProjectionMatrix();closeProjects();hall.reset();tv.reset();roomIndex=0;world.visible=true;hall.group.visible=false;future.group.visible=false;sun.intensity=3;fill.intensity=.65;scene.background.set('#c6d7e8');state='table';glassesRest();player.position.fromArray(spawn);player.rotation.y=0;yaw=0;pitch=.32;dist=3.45;camera.position.set(.9,2.25,2.8);reveal.visible=false;door.position.z=doorZ;badge.textContent='Найдите VR-очки';mission.textContent='Подойдите к столу и наденьте VR-очки.';$('flash').style.opacity=0;updateChapter();}
+function reset(){sun.position.set(7,7,1);sun.target.position.set(-2,0,-2);assets.selectCharacter('base');headset.visible=true;$('future-controls').hidden=true;camera.fov=53;camera.updateProjectionMatrix();closeProjects();hall.reset();tv.reset();roomIndex=0;world.visible=true;hall.group.visible=false;future.group.visible=false;sun.intensity=3;fill.intensity=.65;scene.background.set('#c6d7e8');state='table';glassesRest();player.position.fromArray(spawn);player.rotation.y=0;yaw=0;pitch=.32;dist=3.45;camera.position.set(.9,2.25,2.8);reveal.visible=false;door.position.z=doorZ;badge.textContent='Найдите VR-очки';mission.textContent='Подойдите к столу и наденьте VR-очки.';$('flash').style.opacity=0;drive.reset();assets.resetMotion();attention=null;updateChapter();}
 $('reset').onclick=()=>{reset();paused=false;$('settings').hidden=true};$('full').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>{})};$('menu').onclick=()=>{paused=!paused;$('settings').hidden=!paused;keys.clear()};$('resume').onclick=()=>{paused=false;$('settings').hidden=true};
 addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','KeyE'].includes(e.code))e.preventDefault();keys.add(e.code);if(e.code==='KeyE'&&!e.repeat)act();if(e.code==='Escape'){if(uiOpen){closeProjects();return;}paused=!paused;$('settings').hidden=!paused;keys.clear()}});addEventListener('keyup',e=>keys.delete(e.code));addEventListener('blur',()=>{keys.clear();drag=false});document.addEventListener('visibilitychange',()=>keys.clear());
 let dragDistance=0;const canvas=$('game');canvas.onpointerdown=e=>{drag=true;lastX=e.clientX;lastY=e.clientY;dragDistance=0;canvas.setPointerCapture(e.pointerId)};canvas.onpointermove=e=>{if(!drag||paused||uiOpen)return;dragDistance+=Math.abs(e.clientX-lastX)+Math.abs(e.clientY-lastY);yaw-=(e.clientX-lastX)*.006;pitch=T.MathUtils.clamp(pitch+(e.clientY-lastY)*.004,-.05,roomIndex===2?1.48:.75);lastX=e.clientX;lastY=e.clientY};canvas.onpointerup=e=>{drag=false};canvas.onpointercancel=()=>drag=false;canvas.oncontextmenu=e=>e.preventDefault();canvas.addEventListener('wheel',e=>{dist=roomIndex===2?T.MathUtils.clamp(dist*Math.exp(e.deltaY*.0015),2,28):T.MathUtils.clamp(dist+e.deltaY*.003,1.5,4.5);e.preventDefault()},{passive:false});
@@ -156,7 +157,17 @@ const raycaster=new T.Raycaster();canvas.addEventListener('click',e=>{
 });
 for(const b of document.querySelectorAll('[data-key]')){b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys.add(b.dataset.key)};b.onpointerup=b.onpointercancel=()=>keys.delete(b.dataset.key)}
 function blocked(x,z){if(roomIndex===1)return hall.blocked(x,z);if(roomIndex===2)return future.blocked(x,z)||x<future.center.x-W/2+.23||x>future.center.x+W/2-.23||z<future.center.z-D/2+.23||z>future.center.z+D/2-.23;if(x< -W/2+.23||x>W/2-.23||z< -D/2+.23||z>D/2-.23)return true;return obstacles.some(o=>Math.abs(x-o.x)<o.w&&Math.abs(z-o.z)<o.d);}
-let last=performance.now(),walk=0;const target=new T.Vector3(),desired=new T.Vector3();function frame(now){requestAnimationFrame(frame);const dt=(paused||uiOpen)?0:T.MathUtils.clamp((now-last)/1000,0,.04);last=now;let moving=false;let dx=0,dz=0;if(!paused&&!uiOpen&&state!=='wearing'){const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'));const right=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));dx=right*Math.cos(yaw)-forward*Math.sin(yaw);dz=-right*Math.sin(yaw)-forward*Math.cos(yaw);const len=Math.hypot(dx,dz);if(len){dx/=len;dz/=len;const nx=player.position.x+dx*dt*1.65,nz=player.position.z+dz*dt*1.65;if(!blocked(nx,player.position.z)){player.position.x=nx;moving=true}if(!blocked(player.position.x,nz)){player.position.z=nz;moving=true}const angle=Math.atan2(-dx,-dz);player.rotation.y+=Math.atan2(Math.sin(angle-player.rotation.y),Math.cos(angle-player.rotation.y))*Math.min(1,dt*12)}}
+let last=performance.now(),walk=0;const target=new T.Vector3(),desired=new T.Vector3();function frame(now){requestAnimationFrame(frame);const dt=(paused||uiOpen)?0:T.MathUtils.clamp((now-last)/1000,0,.04);last=now;
+const forwardInput=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'));
+const rightInput=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
+const input={x:rightInput*Math.cos(yaw)-forwardInput*Math.sin(yaw),z:-rightInput*Math.sin(yaw)-forwardInput*Math.cos(yaw)};
+if(state==='wearing'){input.x=0;input.z=0;}
+const motion=drive.update(dt,player,input,blocked);const moving=motion.speed>.01;
+attentionTime=Math.max(0,attentionTime-dt);
+if(attention&&attentionTime>0)motion.lookTarget=attention;
+else if(roomIndex===0&&state==='table'&&near())motion.lookTarget=glassesHome;
+else if(roomIndex===1){const pod=hall.nearest(player.position);if(pod!==null)motion.lookTarget=hall.pods[pod].g.position.clone().add(new T.Vector3(0,1.6,0));}
+
 walk=T.MathUtils.damp(walk,moving?1:0,9,dt);phase+=dt*8;body.position.y=Math.abs(Math.sin(phase))*.016*walk+Math.sin(now*.0016)*.003;legs[0].rotation.x=Math.sin(phase)*.36*walk;legs[1].rotation.x=-Math.sin(phase)*.36*walk;arms[0].rotation.x=-Math.sin(phase)*.29*walk;arms[1].rotation.x=Math.sin(phase)*.29*walk;
 
 if(state==='worn'){door.position.z=T.MathUtils.damp(door.position.z,doorZ+doorWidth+.03,2,dt)}else{door.position.z=T.MathUtils.damp(door.position.z,doorZ,3,dt)}marker.visible=state==='table';marker.position.set(glassesHome.x,glassesHome.y+.3+Math.sin(now*.002)*.025,glassesHome.z);marker.quaternion.copy(camera.quaternion);let actionText='';if(roomIndex===0){tv.update(dt);if(state==='table'&&near())actionText='Надеть VR-очки';else if(doorNear())actionText='Войти';}else if(roomIndex===1){if(hall.exitNear(player.position))actionText='Подняться';else{const i=hall.nearest(player.position);if(i!==null)actionText='Рассмотреть: '+hall.themes[i].name;}}action.hidden=paused||uiOpen||!actionText;action.innerHTML='<kbd>E</kbd> '+actionText;$('step1').classList.toggle('done',state!=='table');$('step2').classList.toggle('done',state==='worn');
@@ -167,7 +178,7 @@ if(roomIndex===2)target.lerp(future.center.clone().add(new T.Vector3(0,H/2,0)),T
 desired.set(target.x+Math.sin(yaw)*Math.cos(pitch)*dist,target.y+Math.sin(pitch)*dist,target.z+Math.cos(yaw)*Math.cos(pitch)*dist);
 if(roomIndex===2){future.group.updateMatrixWorld(true);const direction=desired.clone().sub(target),length=direction.length(),probe=new T.Raycaster(target,direction.normalize(),0,length);const hit=probe.intersectObject(future.liftBody)[0];if(hit)desired.copy(target).addScaledVector(direction,Math.max(.3,hit.distance-.18));desired.y=T.MathUtils.clamp(desired.y,.4,future.top-2);const offset=desired.clone().sub(future.center);const r=Math.hypot(offset.x,offset.z);if(r>future.radius-3){desired.x=future.center.x+offset.x*(future.radius-3)/r;desired.z=future.center.z+offset.z*(future.radius-3)/r;}}
 else {const v=desired.clone().sub(target);let f=1;for(let axis of['x','z']){const bound=roomIndex===1?(axis==='x'?CONFIG.reactor.width/2-.15:CONFIG.reactor.depth/2-.15):(axis==='x'?W/2-.15:D/2-.15),center=roomIndex===1?(axis==='z'?CONFIG.reactor.centerZ:0):0;if(desired[axis]>center+bound)f=Math.min(f,(center+bound-target[axis])/v[axis]);if(desired[axis]<center-bound)f=Math.min(f,(center-bound-target[axis])/v[axis])}if(desired.y>H-.2)f=Math.min(f,(H-.2-target.y)/v.y);desired.copy(target).addScaledVector(v,Math.max(.1,f));}
-camera.position.lerp(desired,1-Math.exp(-dt*10));camera.lookAt(target);assets.update(dt,moving,state,anim);if(roomIndex===2)future.update(camera);renderer.render(scene,camera);}
+camera.position.lerp(desired,1-Math.exp(-dt*10));camera.lookAt(target);assets.update(dt,moving,state,motion);if(roomIndex===2)future.update(camera);renderer.render(scene,camera);}
 function setView(view){if(roomIndex!==2)return;if(view==='inside'){yaw=.55;pitch=.22;dist=2.65;}else{yaw=view==='top'?.4:-.7;pitch=view==='top'?1.25:.48;dist=view==='top'?22:20;}}
 for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>setView(b.dataset.view);
 $('preview-future').onclick=()=>{paused=false;$('settings').hidden=true;enterRoom(2);setView('inside');};
