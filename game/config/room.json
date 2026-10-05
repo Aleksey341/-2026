@@ -499,7 +499,8 @@
         0,
         0,
         0
-      ]
+      ],
+      "enabled": false
     },
     "environment": {
       "radius": 75,

@@ -1,6 +1,6 @@
 import * as T from '../vendor/three.module.js';
 import {assetURL} from './assets.js';
-import {plate,showcase,markProject,animateShowcase,energyReactor,energyPipe,shutter} from './retro.js';
+import {plate,showcase,markProject,animateShowcase,energyReactor,energyPipe,shutter,makeMysticPortalScreen,makeNeonRussiaWall} from './retro.js';
 
 export async function makeReactorRoom(scene,config){
  const {width:W,depth:D,height:H,centerZ:Z,themes}=config;
@@ -13,6 +13,21 @@ export async function makeReactorRoom(scene,config){
  const roof=new T.Mesh(new T.PlaneGeometry(W,D),new T.MeshBasicMaterial({map:textures.ceilingOff}));roof.rotation.x=Math.PI/2;roof.position.set(0,H-.01,Z);group.add(roof);
  box(.24,H,D,dark,-W/2,H/2,Z);
  box(W,H,.24,dark,0,H/2,Z+D/2);box(W,H,.24,dark,0,H/2,Z-D/2);
+ // Far wall: neon Russia map + theme callouts that match the four flasks.
+ const resultsWall=makeNeonRussiaWall(themes,Math.min(W-1.2,12),Math.min(H-1.1,3.7));
+ resultsWall.mesh.position.set(0,H/2+.1,Z-D/2+.14);group.add(resultsWall.mesh);
+ // Side / entrance walls: mystical portal “video” screens (procedural Strange-style rings).
+ const wallScreens=[];
+ const screenSlots=[
+  {x:-W/2+.13,y:H/2-.1,z:Z-3.5,ry:Math.PI/2,w:5.2,h:2.7,seed:0.2},
+  {x:-W/2+.13,y:H/2-.1,z:Z+3.8,ry:Math.PI/2,w:5.2,h:2.7,seed:1.4},
+  {x:-6.2,y:H/2-.15,z:Z+D/2-.13,ry:Math.PI,w:4.2,h:2.5,seed:2.6},
+  {x:6.2,y:H/2-.15,z:Z+D/2-.13,ry:Math.PI,w:4.2,h:2.5,seed:3.8}
+ ];
+ for(const s of screenSlots){
+  const screen=makeMysticPortalScreen(s.w,s.h,s.seed);
+  screen.mesh.position.set(s.x,s.y,s.z);screen.mesh.rotation.y=s.ry;group.add(screen.mesh);wallScreens.push(screen);
+ }
  const gate={g:new T.Group(),door:new T.Group(),open:false,progress:0,leaves:[]};gate.g.add(gate.door);
  function liftBox(w,h,d,x,y,z,color,parent=gate.g){const o=new T.Mesh(new T.BoxGeometry(w,h,d),mat(color,.4,.6));o.position.set(x,y,z);parent.add(o);return o;}
  for(const side of [-1,1]){const leaf=liftBox(1.72,3.38,.08,side*.865,1.69,0,'#8f929c',gate.door);gate.leaves.push(leaf);liftBox(.16,3.5,.3,side*1.83,1.75,0,'#52415f');liftBox(.025,3.36,.035,side*1.74,1.68,.12,'#d4b1ff');}
@@ -23,7 +38,7 @@ export async function makeReactorRoom(scene,config){
  for(const [lo,hi] of [[Z-D/2,gateZ-gateWidth/2],[gateZ+gateWidth/2,Z+D/2]])box(.24,H,hi-lo,dark,W/2,H/2,(lo+hi)/2);
  box(.24,H-gateHeight,gateWidth,dark,W/2,(H+gateHeight)/2,gateZ);
  for(let z=Z-D/2+2;z<Z+D/2-2;z+=6)for(const side of [-1,1])box(.3,H-.2,.65,stone,side*(W/2-.3),(H-.2)/2,z);
- const reactor=energyReactor(themes.map(t=>t.color));reactor.g.position.set(0,0,Z);group.add(reactor.g);
+ const reactor=energyReactor(themes.map(t=>t.color),themes.map(t=>t.name));reactor.g.position.set(0,0,Z);group.add(reactor.g);
  const positions=[[-6,Z-1.4],[-3.5,Z-5],[3.5,Z-5],[6,Z-1.4]],pods=[],pipes=[],done=new Set(),projects=themes.map(()=>new Set());
  positions.forEach(([x,z],i)=>{const p=showcase(i,themes[i]);p.g.position.set(x,0,z);p.g.rotation.y=Math.atan2(-x,Z+8-z);group.add(p.g);pods.push(p);const base=p.g.children.find(o=>o.geometry?.type==='CylinderGeometry'&&Math.abs(o.position.y-.34)<.01);if(base&&textures.base){const m=base.material.clone();m.color.set('#ffffff');m.map=textures.base;m.metalness=.3;m.roughness=.65;base.material=[m,base.material,base.material];}const pipe=energyPipe(new T.Vector3(x,.14,z),new T.Vector3(0,.14,Z),themes[i].color);pipes.push(pipe);group.add(pipe.g);});
  gate.behind.material=new T.MeshStandardMaterial({color:'#9c91a6',roughness:.45,metalness:.5});
@@ -35,7 +50,7 @@ export async function makeReactorRoom(scene,config){
  function nearest(player){let best=null,distance=3.8;pods.forEach((p,i)=>{const d=Math.hypot(player.x-p.g.position.x,player.z-p.g.position.z);if(d<distance){best=i;distance=d;}});return best;}
  function exitNear(player){return gate.open&&gate.progress>.9&&player.x>W/2-2.4&&Math.abs(player.z-gateZ)<gateWidth/2+.4;}
  function blocked(x,z){if(x< -W/2+.35||x>W/2-.35||z<Z-D/2+.35||z>Z+D/2-.35)return true;if(Math.hypot(x,z-Z)<1.95)return true;return pods.some(p=>Math.abs(x-p.g.position.x)<1.7&&Math.abs(z-p.g.position.z-.15)<1.9);}
- function update(dt,time){roof.material.map=done.size===4?textures.ceilingOn:textures.ceilingOff;pods.forEach((p,i)=>animateShowcase(p,dt,time,themes[i].color));pipes.forEach(e=>{e.line.visible=e.active;e.sparks.forEach((s,j)=>{s.visible=e.active;if(e.active)s.position.copy(e.curve.getPoint((time*.17+j*.2)%1));});});reactor.fills.forEach((f,i)=>{f.scale.y=T.MathUtils.damp(f.scale.y,done.has(i)?1:.001,1.5,dt);f.position.y=.76+1.125*f.scale.y;});reactor.core.rotation.y+=dt*done.size*.3;gate.progress=T.MathUtils.damp(gate.progress,gate.open?1:0,1.7,dt);gate.leaves.forEach((leaf,i)=>leaf.position.x=(i===0?-1:1)*(.865+1.65*gate.progress));lamps.forEach(l=>l.intensity=70+done.size*18);}
+ function update(dt,time){roof.material.map=done.size===4?textures.ceilingOn:textures.ceilingOff;pods.forEach((p,i)=>animateShowcase(p,dt,time,themes[i].color));pipes.forEach(e=>{e.line.visible=e.active;e.sparks.forEach((s,j)=>{s.visible=e.active;if(e.active)s.position.copy(e.curve.getPoint((time*.17+j*.2)%1));});});reactor.fills.forEach((f,i)=>{f.scale.y=T.MathUtils.damp(f.scale.y,done.has(i)?1:.001,1.5,dt);f.position.y=.76+1.125*f.scale.y;});reactor.core.rotation.y+=dt*done.size*.3;if(reactor.ticker)reactor.ticker.update(dt);if(reactor.domeTicker)reactor.domeTicker.update(dt);if((time*2|0)%2===0){resultsWall.update(time);wallScreens.forEach(s=>s.update(time));}gate.progress=T.MathUtils.damp(gate.progress,gate.open?1:0,1.7,dt);gate.leaves.forEach((leaf,i)=>leaf.position.x=(i===0?-1:1)*(.865+1.65*gate.progress));lamps.forEach(l=>l.intensity=70+done.size*18);}
  function reset(){done.clear();projects.forEach(s=>s.clear());gate.open=false;gate.behind.visible=false;gate.progress=0;gate.leaves.forEach((leaf,i)=>leaf.position.x=(i===0?-1:1)*.865);pods.forEach((p,i)=>{p.opened=false;p.activated=false;p.panel.position.y=.05;p.ring.material.color.set('#182c2e');p.ring.material.emissive.set('#182c2e');p.illumination.intensity=0;p.lamps.forEach(l=>l.material=new T.MeshStandardMaterial({color:'#494e40'}));const replacement=plate('0 / '+themes[i].cards.length,2.12,.1);p.meter.material=replacement.material;p.buttons.forEach(b=>{if(b.geometry.type==='CylinderGeometry'){b.position.z=.14;b.material=dark.clone();}});pipes[i].active=false;reactor.fills[i].scale.y=.001;reactor.fills[i].position.y=.761;});update(0,0);}
  return {group,pods,pipes,reactor,gate,gateWidth,gateHeight,gateZ,done,projects,themes,completeProject,nearest,exitNear,blocked,update,reset,bounds:{minX:-W/2,maxX:W/2,minZ:Z-D/2,maxZ:Z+D/2}};
 }

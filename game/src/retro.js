@@ -55,7 +55,7 @@ export function showcase(i,theme){
   cylinder(g,1.24,.055,brass,0,.54,0);cylinder(g,1.22,1.6,glass,0,1.36,0);
   cylinder(g,1.28,.08,brass,0,2.19,0);cylinder(g,1.3,.14,cream,0,2.29,0);
   for(const x of[-1.13,1.13])cylinder(g,.029,1.62,brass,x,1.36,0);
-  const title=plate(theme.name,2.2,.29,'#e5d5b3','#24383b',65);title.position.set(0,2.58,.32);g.add(title);
+  const title=plate(theme.name,2.2,.29,'#e5d5b3','#24383b',65);title.position.set(0,2.58,.32);title.visible=false;g.add(title);
   const statusMat=activeMaterial('#182c2e'),ring=mesh(g,new T.TorusGeometry(1.24,.022,10,80),statusMat,0,.56,0);ring.rotation.x=Math.PI/2;
   const robots=[robot(g,-.44,0,Math.PI/2),robot(g,.44,0,-Math.PI/2)];
   const moving=[];
@@ -87,17 +87,127 @@ export function markProject(p,j,color,total){
 export function animateShowcase(p,dt,time,color){
   p.panel.position.y=T.MathUtils.damp(p.panel.position.y,p.opened?.89:.05,5,dt);
   p.panel.visible=p.opened||p.panel.position.y>.07;
+  // Idle robotics always move; activation amplifies the loop.
+  const boost=p.activated?1:.55,phase=time*(p.activated?1:.7);
+  p.robots.forEach((r,ri)=>{
+    r.g.rotation.z=Math.sin(phase*1.35+ri)*.028*boost;
+    r.g.position.y=.56+Math.sin(phase*2.1+ri)*.012*boost;
+    r.arms[0].rotation.x=-.35+Math.sin(phase*2.4+ri)*.18*boost;
+    r.arms[1].rotation.x=-.35+Math.sin(phase*2.4+ri+1.2)*.18*boost;
+    r.arms[0].rotation.z=ri?- .08:.08;
+    r.arms[1].rotation.z=ri?.08:-.08;
+  });
+  if(p.i===0&&p.moving[0]){p.moving[0].position.x=Math.sin(phase*.9)*.28*boost;p.moving[0].position.y=1.05+Math.sin(phase*1.6)*.06;p.moving[0].rotation.y+=dt*.55*boost;}
+  if(p.i===1){p.robots[0].arms[1].rotation.x=-1.15+Math.sin(phase*2.6)*.22*boost;p.robots[1].arms[0].rotation.x=-1.15+Math.sin(phase*2.6+.4)*.22*boost;}
+  if(p.i===2){
+    if(p.activated){p.robots[1].g.rotation.z=T.MathUtils.damp(p.robots[1].g.rotation.z,0,1.3,dt);p.robots[1].g.position.y=T.MathUtils.damp(p.robots[1].g.position.y,.56,1.3,dt);}
+    else{p.robots[1].g.rotation.z=.32+Math.sin(phase)*.06;p.robots[1].g.position.y=.44+Math.abs(Math.sin(phase*1.4))*.08;}
+  }
+  if(p.i===3)p.moving.forEach((m,j)=>{m.rotation.z+=(j%2?-1:1)*dt*(.35+.45*boost);m.rotation.x=Math.sin(phase+j)*.12*boost;});
   if(!p.activated)return;
   p.ring.material.color.set(color);p.ring.material.emissive.set(color);p.illumination.intensity=T.MathUtils.damp(p.illumination.intensity,9,2,dt);
-  const phase=time-p.openedAt;
-  p.robots[0].g.rotation.z=Math.sin(phase*1.2)*.022;
-  if(p.i===0){p.moving[0].position.x=Math.sin(phase*.8)*.23;p.moving[0].rotation.y+=dt*.4;}
-  if(p.i===1){p.robots[0].arms[1].rotation.x=-1.25+Math.sin(phase*2.2)*.07;p.robots[1].arms[0].rotation.x=-1.25+Math.sin(phase*2.2)*.07;}
-  if(p.i===2){p.robots[1].g.rotation.z=T.MathUtils.damp(p.robots[1].g.rotation.z,0,1.3,dt);p.robots[1].g.position.y=T.MathUtils.damp(p.robots[1].g.position.y,.56,1.3,dt);}
-  if(p.i===3)p.moving.forEach((m,j)=>{m.rotation.z+=(j%2?-1:1)*dt*.5;});
 }
 
-export function energyReactor(colors){
+export function makeTicker(text='РОСТЕЛЕКОМ  ·  ИТОГИ 2026  ·  HR БУДУЩЕГО  ·  ',w=2.4,h=.28){
+  const c=document.createElement('canvas');c.width=1024;c.height=128;const ctx=c.getContext('2d');
+  const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.anisotropy=4;
+  const mat=new T.MeshBasicMaterial({map,toneMapped:false,transparent:true});
+  const meshObj=new T.Mesh(new T.PlaneGeometry(w,h),mat);
+  let offset=0;
+  function paint(){
+    ctx.fillStyle='#0b1520';ctx.fillRect(0,0,c.width,c.height);
+    ctx.fillStyle='#1a3344';ctx.fillRect(0,0,c.width,8);ctx.fillRect(0,c.height-8,c.width,8);
+    ctx.fillStyle='#7dffd2';ctx.shadowColor='#2affc0';ctx.shadowBlur=12;
+    ctx.font='700 64px Arial';ctx.textBaseline='middle';
+    const full=text+text;const tw=ctx.measureText(text).width||800;
+    const x=(-offset%tw);ctx.fillText(full,x,c.height/2);ctx.fillText(full,x+tw,c.height/2);
+    ctx.shadowBlur=0;map.needsUpdate=true;
+  }
+  paint();
+  return {mesh:meshObj,update(dt){offset+=dt*140;paint();}};
+}
+
+// Ring ticker wrapped around the upper rim of the reactor dome (museum plate style).
+export function makeDomeTicker(labels,radius=1.36,height=.32){
+  const names=(labels&&labels.length?labels:['Быстрый найм','Удержание','Человекоцентричность','Эффективность']);
+  const unit=names.map(n=>`  ${n}  ·`).join('')+'  ';
+  const c=document.createElement('canvas');c.width=2048;c.height=160;const ctx=c.getContext('2d');
+  const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.wrapS=T.RepeatWrapping;map.wrapT=T.ClampToEdgeWrapping;map.anisotropy=4;map.flipY=false;
+  function paintStrip(){
+    ctx.fillStyle='#24383b';ctx.fillRect(0,0,c.width,c.height);
+    ctx.strokeStyle='#a48b58';ctx.lineWidth=6;ctx.strokeRect(4,4,c.width-8,c.height-8);
+    ctx.fillStyle='#a48b58';ctx.fillRect(0,0,c.width,5);ctx.fillRect(0,c.height-5,c.width,5);
+    ctx.fillStyle='#f1dfb0';ctx.font='600 72px Arial';ctx.textBaseline='middle';ctx.textAlign='left';
+    const tw=ctx.measureText(unit).width||900;
+    for(let x=0;x<c.width+tw;x+=tw)ctx.fillText(unit,x,c.height/2);
+    map.needsUpdate=true;
+    return tw;
+  }
+  paintStrip();
+  const geo=new T.CylinderGeometry(radius,radius,height,64,1,true);
+  // Flip U so text reads left-to-right from outside the dome.
+  const uv=geo.attributes.uv;for(let i=0;i<uv.count;i++)uv.setX(i,1-uv.getX(i));uv.needsUpdate=true;
+  const mat=new T.MeshBasicMaterial({map,toneMapped:false,side:T.FrontSide,transparent:false});
+  const meshObj=new T.Mesh(geo,mat);
+  return {mesh:meshObj,update(dt){map.offset.x=(map.offset.x-dt*.08)%1;if(map.offset.x<0)map.offset.x+=1;}};
+}
+
+export function makeMysticPortalScreen(w=4.2,h=2.6,seed=0){
+  const c=document.createElement('canvas');c.width=768;c.height=512;const ctx=c.getContext('2d');
+  const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;
+  const screen=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map,toneMapped:false}));
+  const sparks=Array.from({length:36},(_,i)=>({a:seed+i*.37,r:.12+(i%7)*.05,s:.4+(i%5)*.18}));
+  function paint(t){
+    const cx=c.width/2,cy=c.height/2;
+    ctx.fillStyle='#05040c';ctx.fillRect(0,0,c.width,c.height);
+    const g=ctx.createRadialGradient(cx,cy,20,cx,cy,280);
+    g.addColorStop(0,'#3a1408');g.addColorStop(.45,'#12081f');g.addColorStop(1,'#030208');
+    ctx.fillStyle=g;ctx.fillRect(0,0,c.width,c.height);
+    for(let ring=1;ring<=6;ring++){
+      const R=38+ring*28+Math.sin(t*1.2+ring+seed)*6;
+      ctx.beginPath();ctx.arc(cx,cy,R,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(255,${110+ring*18},40,${.55-ring*.06})`;ctx.lineWidth=2+ring*.35;ctx.stroke();
+      ctx.beginPath();
+      for(let k=0;k<12;k++){const a=t*(.4+ring*.05)+k*Math.PI/6+seed;const x=cx+Math.cos(a)*R,y=cy+Math.sin(a)*R;k?ctx.lineTo(x,y):ctx.moveTo(x,y);}
+      ctx.closePath();ctx.strokeStyle=`rgba(255,170,70,${.18})`;ctx.lineWidth=1;ctx.stroke();
+    }
+    ctx.strokeStyle='#ffb45a';ctx.lineWidth=3;ctx.beginPath();ctx.arc(cx,cy,210+Math.sin(t*2)*4,0,Math.PI*2);ctx.stroke();
+    sparks.forEach(s=>{const a=s.a+t*s.s,rr=90+s.r*180;ctx.fillStyle='rgba(255,210,120,.85)';ctx.beginPath();ctx.arc(cx+Math.cos(a)*rr,cy+Math.sin(a)*rr,2.2,0,Math.PI*2);ctx.fill();});
+    ctx.fillStyle='rgba(255,150,60,.15)';ctx.beginPath();ctx.arc(cx,cy,48+Math.sin(t*3)*6,0,Math.PI*2);ctx.fill();
+    map.needsUpdate=true;
+  }
+  paint(0);
+  return {mesh:screen,update(t){paint(t);}};
+}
+
+export function makeNeonRussiaWall(themes,w=10.5,h=3.6){
+  const c=document.createElement('canvas');c.width=1600;c.height=900;const ctx=c.getContext('2d');
+  const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.anisotropy=4;
+  // Simplified neon outline of Russia (stylized, readable silhouette).
+  const outline=[[120,520],[180,430],[260,360],[360,300],[470,270],[600,250],[720,240],[840,255],[960,280],[1080,300],[1180,340],[1260,400],[1320,470],[1360,540],[1320,600],[1220,640],[1100,660],[980,650],[860,630],[740,620],[640,640],[540,680],[440,700],[340,690],[250,650],[180,600],[140,560]];
+  function paint(t){
+    ctx.fillStyle='#061018';ctx.fillRect(0,0,c.width,c.height);
+    for(let i=0;i<40;i++){ctx.fillStyle=`rgba(80,200,255,${.04+(i%5)*.01})`;ctx.fillRect((i*137)%c.width,(i*89)%c.height,2,2);}
+    ctx.strokeStyle=`rgba(70,220,255,${.55+.2*Math.sin(t)})`;ctx.lineWidth=6;ctx.shadowColor='#3de7ff';ctx.shadowBlur=18;
+    ctx.beginPath();outline.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));ctx.closePath();ctx.stroke();
+    ctx.shadowBlur=0;ctx.fillStyle='rgba(20,80,110,.35)';ctx.fill();
+    ctx.fillStyle='#9ef7ff';ctx.font='700 54px Arial';ctx.textAlign='center';ctx.fillText('ИТОГИ 2026',c.width/2,90);
+    ctx.font='500 28px Arial';ctx.fillStyle='#7ad7e8';ctx.fillText('Год единства · направления HR',c.width/2,135);
+    const spots=[[420,480],[700,420],[980,460],[1180,500]];
+    themes.forEach((th,i)=>{
+      const [x,y]=spots[i]||[500+i*200,500];
+      ctx.beginPath();ctx.arc(x,y,14,0,Math.PI*2);ctx.fillStyle=th.color;ctx.shadowColor=th.color;ctx.shadowBlur=16;ctx.fill();ctx.shadowBlur=0;
+      ctx.font='600 26px Arial';ctx.fillStyle='#e8fbff';ctx.textAlign='left';ctx.fillText(th.name,x+22,y+8);
+      if(th.tag){ctx.font='400 18px Arial';ctx.fillStyle='#9ec9d6';ctx.fillText(th.tag,x+22,y+32);}
+    });
+    map.needsUpdate=true;
+  }
+  paint(0);
+  const wall=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map,toneMapped:false}));
+  return {mesh:wall,update(t){paint(t);}};
+}
+
+export function energyReactor(colors,names=[]){
   const g=new T.Group(),fills=[];
   cylinder(g,1.65,.25,graphite,0,.125,0);cylinder(g,1.51,.3,cream,0,.4,0);cylinder(g,1.46,.07,brass,0,.59,0);
   cylinder(g,1.23,2.65,glass,0,1.96,0);cylinder(g,1.47,.08,brass,0,3.34,0);cylinder(g,1.52,.18,cream,0,3.47,0);
@@ -107,8 +217,12 @@ export function energyReactor(colors){
     const fill=cylinder(g,.165,2.25,activeMaterial(colors[i]),x,.76,z);fill.scale.y=.001;fills.push(fill);
   }
   const core=mesh(g,new T.TorusGeometry(.27,.05,16,48),brass,0,1.9,0);
-  const plaque=plate('Ростелеком',2.1,.32,'#ffffff','#24363a',115);plaque.position.set(0,.4,1.55);g.add(plaque);
-  return {g,fills,core};
+  const ticker=makeTicker('РОСТЕЛЕКОМ  ·  HR  ·  ИТОГИ 2026  ·  БУДУЩЕЕ НАЧИНАЕТСЯ С НАС  ·  ');
+  ticker.mesh.position.set(0,.42,1.58);g.add(ticker.mesh);
+  // Theme plates live here as a continuous ribbon under the dome crown.
+  let domeTicker=null;
+  if(names.length){domeTicker=makeDomeTicker(names,1.38,.3);domeTicker.mesh.position.set(0,3.18,0);g.add(domeTicker.mesh);}
+  return {g,fills,core,ticker,domeTicker};
 }
 
 export function energyPipe(start,end,color){
