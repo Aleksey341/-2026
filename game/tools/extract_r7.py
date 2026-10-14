@@ -46,6 +46,13 @@ for name, uri in assets.items():
     add(name, decode(uri))
 add('config/room.json', (json.dumps(config, ensure_ascii=False, indent=2)+'\n').encode())
 add('baseline-R7.html', source.read_bytes())
+development = re.sub(r'window.ROOM_CONFIG=(.*?);window.ROOM_EMBEDDED=(.*?);</script>',
+                     lambda _: 'window.ROOM_CONFIG='+json.dumps(config, ensure_ascii=False).replace('<', '\\u003c')+';window.ROOM_EMBEDDED={};</script>', html, flags=re.S)
+external_map = {'imports': {name: './'+name[len('room-module/'):] for name in modules}}
+development = re.sub(r'(<script\s+type="importmap">).*?(</script>)',
+                     lambda m: m[1]+json.dumps(external_map)+m[2], development, flags=re.S)
+development = development.replace('СБОРКА R7 · ТЁМНЫЕ СЛАЙДЫ', 'R8 · ОСНОВА R7 · ПЕРСОНАЖ ЕЩЁ НЕ ЗАМЕНЁН')
+add('index-R8-development.html', development.encode())
 manifest = {str(path.relative_to(destination)): hashlib.sha256(data).hexdigest() for path, data in files.items()}
 add('baseline-manifest.json', (json.dumps(manifest, indent=2)+'\n').encode())
 for path, data in files.items():
