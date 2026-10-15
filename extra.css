@@ -1,0 +1,18 @@
+#reactor-notice{position:fixed;left:50%;top:7%;transform:translateX(-50%);max-width:50vw;text-align:center;color:#c5e7fa;background:#162131c9;border:1px solid #65c7ed33;border-radius:8px;padding:10px 17px;font-size:14px;pointer-events:none;z-index:8}
+#project-content .project-choice em{position:absolute;right:18px;top:14px;margin:0;font-size:12px;line-height:1.2}
+#project-content .project-choice svg{margin-top:8px}
+.card-arrow{display:flex;align-items:center;justify-content:center;line-height:1;font-family:Arial,sans-serif}
+.project-choice.viewed .card-arrow{font-size:20px}
+@media(max-width:700px){#project-content .project-choice em{right:9px;top:9px;font-size:10px}#reactor-notice{top:22%;max-width:85vw}}
+.game-progress-hud{position:fixed;right:max(24px,env(safe-area-inset-right));bottom:max(22px,env(safe-area-inset-bottom));width:230px;display:flex;align-items:center;gap:14px;pointer-events:none;z-index:10;opacity:.78;color:#c7d6e4;text-shadow:0 1px 3px #182434;font-size:12px}
+.game-progress-track{position:relative;flex:1;height:2px;background:rgba(140,160,190,.28);box-shadow:0 1px 3px #16243a35}
+.game-progress-fill{height:100%;width:0;background:linear-gradient(90deg,#5aaeff,#9b77ea);transition:width .6s ease}
+.game-progress-track i{position:absolute;top:50%;width:5px;height:5px;transform:translate(-50%,-50%);border:1px solid #a4b5c675;border-radius:50%;background:#334253}
+.game-progress-track i.done{background:#82a8d3;border-color:#82a8d3}.game-progress-track i.current{width:6px;height:6px;background:#c2d7ed;box-shadow:0 0 4px #9bbce966}
+.game-progress-number{min-width:30px;text-align:right;font-variant-numeric:tabular-nums}
+.game-progress-caption{position:absolute;bottom:13px;right:42px;font-size:10px;opacity:0;white-space:nowrap}
+.game-progress-caption.show{animation:progress-caption 2s ease forwards}@keyframes progress-caption{0%,100%{opacity:0}20%,75%{opacity:.75}}
+.progress-pulse .current{animation:progress-point .6s ease}@keyframes progress-point{50%{box-shadow:0 0 6px #a4c4ed99}}
+.badge{bottom:50px}body.viewing-project .game-progress-hud{opacity:.18}body.welcome-open .game-progress-hud{z-index:3001}
+@media(max-width:1000px){.game-progress-hud{width:190px}}@media(max-width:600px){.game-progress-hud{width:150px;right:16px;bottom:18px;font-size:11px}.game-progress-caption{display:none}.game-progress-track i{width:4px;height:4px}.badge{bottom:45px}}
+#project-modal.final-view #project-back{display:block;z-index:2}
