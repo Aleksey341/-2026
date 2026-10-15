@@ -1,0 +1,84 @@
+name: R15 lift and entry smoke test
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [fix-r15-no-vr-lift-trigger]
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check changed JavaScript modules
+        run: |
+          for f in room-module/src/{game,elevator,progress}.js source/{game,elevator,progress}.js; do node --check "$f"; done
+          cmp room-module/src/game.js source/game.js
+          cmp room-module/src/elevator.js source/elevator.js
+          cmp room-module/src/progress.js source/progress.js
+      - name: Exercise real Three.js elevator state machine (no browser required)
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import os from 'node:os';
+          import {pathToFileURL} from 'node:url';
+          import assert from 'node:assert/strict';
+          const cwd=process.cwd();
+          const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'borup-r15-'));
+          const vendor=path.join(cwd,'room-module/vendor');
+          fs.copyFileSync(path.join(vendor,'three.core.js'),path.join(tmp,'three.core.mjs'));
+          const three=fs.readFileSync(path.join(vendor,'three.module.js'),'utf8').replaceAll("'room-module/vendor/three.core.js'","'./three.core.mjs'");
+          fs.writeFileSync(path.join(tmp,'three.module.mjs'),three);
+          const threeURL=pathToFileURL(path.join(tmp,'three.module.mjs')).href;
+          let elevator=fs.readFileSync(path.join(cwd,'room-module/src/elevator.js'),'utf8');
+          elevator=elevator.replace("import * as T from 'room-module/vendor/three.module.js';","import * as T from '"+threeURL+"';")
+            .replace("import {plate} from 'room-module/src/retro.js';","const plate=(t,w,h)=>new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial());");
+          fs.writeFileSync(path.join(tmp,'elevator.mjs'),elevator);
+          globalThis.document={createElement(){return {style:{},setAttribute(){}}},body:{append(){}}};
+          const T=await import(threeURL);
+          const {createElevatorController}=await import(pathToFileURL(path.join(tmp,'elevator.mjs')).href);
+          const root=new T.Scene(),gate=new T.Group(),lift=new T.Group();
+          root.add(gate,lift);gate.position.set(5.85,0,-8);gate.rotation.y=-Math.PI/2;
+          lift.position.set(20,0,-8);
+          const hall={gate:{g:gate},gateWidth:3.4,gateHeight:3.4,reactorFilled:false};
+          let sealed=0,entered=0,transformed=0,exited=0;
+          const future={liftAnchor:lift,height:4.875,sealLift(){sealed++}};
+          const player=new T.Group(),camera=new T.PerspectiveCamera(53,1,.1,200);
+          root.add(player,camera);
+          const e=createElevatorController({hall,future,player,camera,enterDestination(){entered++},onTransform(){transformed++},onExit(){exited++}});
+          const step=(seconds)=>{for(let i=0;i<Math.ceil(seconds*60);i++)e.update(1/60)};
+          assert.equal(e.state,'ELEVATOR_LOCKED');
+          assert.equal(e.origin.pad.name,'neon-elevator-trigger');
+          assert.equal(e.destination.pad.visible,false);
+          hall.reactorFilled=true;step(1/60);
+          assert.equal(e.state,'ELEVATOR_READY');
+          player.position.copy(gate.localToWorld(new T.Vector3(0,0,1.65)));
+          assert.equal(e.near(player.position),true);
+          step(1/60);
+          assert.equal(e.state,'ELEVATOR_OPENING');
+          step(13);
+          assert.equal(e.state,'ELEVATOR_ARRIVED');
+          assert.equal(entered,1);
+          assert.equal(transformed,1);
+          assert.equal(e.exit(),true);
+          step(8);
+          assert.equal(e.state,'ELEVATOR_COMPLETE');
+          assert.equal(exited,1);
+          assert.equal(sealed,1);
+          assert.equal(e.destination.root.visible,false);
+          assert.ok(e.destination.root.position.y < -3);
+          e.reset();
+          assert.equal(e.state,'ELEVATOR_LOCKED');
+          assert.equal(e.destination.root.visible,true);
+          assert.equal(e.destination.root.position.y,0);
+          const game=fs.readFileSync(path.join(cwd,'room-module/src/game.js'),'utf8');
+          const progress=fs.readFileSync(path.join(cwd,'room-module/src/progress.js'),'utf8');
+          assert.ok(game.includes('CONFIG.glasses.model=null'));
+          assert.ok(!game.includes('Надеть VR-очки'));
+          assert.ok(progress.includes('passage:false'));
+          console.log('PASS: trigger, arrival, exit, underfloor, glass seal, reset, VR gate removed');
+          NODE
