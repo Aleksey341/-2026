@@ -32,11 +32,14 @@ export async function makeFuture(scene,config){
  box(.014,H,.014,-W/2,H/2,0,'#a8b4c0',.5);
  for(const z of [-D/2-.035,D/2+.035]){box(W+.25,.32,.18,0,-.06,z,trim,.7);box(W+.25,.16,.13,0,H,z,trim,.7);}
  for(const x of [-W/2-.035,W/2+.035]){box(.18,.32,D+.25,x,-.06,0,trim,.7);box(.13,.16,D+.25,x,H,0,trim,.7);}
+ const liftGlass=glass(3.1,H,W/2,H/2,0,0,Math.PI/2);liftGlass.name='lift-glass-wall';liftGlass.visible=false;
  const front=W/2-1.21;
  const liftAnchor=new T.Group();liftAnchor.position.set(front,0,0);liftAnchor.rotation.y=-Math.PI/2;group.add(liftAnchor);
  const liftBody=liftAnchor; // The old solid block is replaced with the real open cabin.
  const hover=new T.Group();group.add(hover);let hoverTime=0;
- function blocked(x,z){const lx=x-group.position.x,lz=z-group.position.z;return lx>front-.23&&Math.abs(lz)<1.55;}
+ let liftRetracted=false;
+ function sealLift(){liftRetracted=true;liftGlass.visible=true;}
+ function blocked(x,z){const lx=x-group.position.x,lz=z-group.position.z;return !liftRetracted&&lx>front-.23&&Math.abs(lz)<1.55;}
  function inspectNear(position){if(!ready)return false;group.updateMatrixWorld(true);const p=inspectButton.getWorldPosition(new T.Vector3());return Math.hypot(position.x-p.x,position.z-p.z)<3.1;}
  const panel=new T.Group();group.add(panel);panel.position.set(-W/2+.06,H/2,0);panel.rotation.y=Math.PI/2;
  const shade=new T.Mesh(new T.PlaneGeometry(D,H),new T.MeshBasicMaterial({color:'#ffffff',transparent:true,opacity:0,side:T.DoubleSide,depthWrite:false}));shade.renderOrder=6;panel.add(shade);
@@ -53,6 +56,6 @@ export async function makeFuture(scene,config){
  function update(camera,dt=0){hoverTime+=dt;
  if(activation>=0){activation+=dt;shade.material.opacity=.9*T.MathUtils.smoothstep(activation,0,1.2);const f=T.MathUtils.smoothstep(activation,1.2,2.2);display.material.opacity=f;display.position.y=-(1-f)*.10;ready=activation>=2.2;inspectButton.visible=false;}
  drones.forEach((d,i)=>{const t=hoverTime*.09+i*Math.PI*2/5;const x=Math.cos(t)*(W/2+3.5),z=Math.sin(t)*(D/2+4);d.position.set(x,2.4+Math.sin(hoverTime*.5+i)*.6+i*.25,z);d.rotation.y=Math.atan2(-Math.sin(t),Math.cos(t));d.rotation.z=Math.sin(hoverTime+i)*.035;d.userData.props.forEach(p=>p.rotation.y+=dt*20);});const local=group.worldToLocal(camera.position.clone());panels.forEach(p=>{p.material.opacity=local.distanceTo(p.position)<2?.025:.085;});}
- function reset(){activation=-1;ready=false;shade.material.opacity=0;display.material.opacity=0;inspectButton.visible=false;hoverTime=0;}
- return {reset,liftAnchor,group,panel,wallButton,inspectButton,activate,inspectNear,get ready(){return ready;},shade,display,drones,hover,blocked,center:group.position.clone(),width:W,depth:D,radius:R,bottom,top,panels,update,liftBody};
+ function reset(){activation=-1;ready=false;shade.material.opacity=0;display.material.opacity=0;inspectButton.visible=false;hoverTime=0;liftRetracted=false;liftGlass.visible=false;liftAnchor.position.y=0;liftAnchor.visible=true;}
+ return {reset,sealLift,liftGlass,liftAnchor,group,panel,wallButton,inspectButton,activate,inspectNear,get ready(){return ready;},shade,display,drones,hover,blocked,center:group.position.clone(),width:W,depth:D,height:H,radius:R,bottom,top,panels,update,liftBody};
 }

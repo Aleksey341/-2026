@@ -56,9 +56,15 @@ export function createElevatorController({hall,future,player,camera,enterDestina
  else if(state==='ELEVATOR_ARRIVED'){placeCamera(.65,2.05,-2.85,0,1.25,.15);}
  else if(state==='ELEVATOR_EXITING'){const p=smooth(t/1.7);dest.copy(world(new T.Vector3(0,0,2.7)));orientToward(dest,dt);player.position.copy(exitFrom).lerp(dest,p);moving=true; // Camera goes through the clear doorway behind the heroine, then joins normal orbit.
  camera.fov=62-9*p;camera.updateProjectionMatrix();placeCamera(.65*(1-p),2.05-.19*p,-2.85+3.56*p,0,1.2,-1.45+4.15*p,f);if(t>=1.7){player.position.copy(dest);setState('ELEVATOR_COMPLETE');onExit();}}
- else if(state==='ELEVATOR_COMPLETE'){door=Math.max(0,door-dt*.5);}
+ else if(state==='ELEVATOR_COMPLETE'){
+  door=1-smooth(t/1.4);
+  // The heroine is clear of the cabin before its doors close and it descends.
+  const descent=smooth((t-1.4)/2.2);
+  destination.root.position.y=-(Math.max(future.height??4.875,destination.height)+.7)*descent;
+  if(descent>=1&&destination.root.visible){destination.root.visible=false;future.sealLift();}
+ }
  origin.update(clock,switched?'ELEVATOR_READY':state,switched?0:door);destination.update(clock,switched?state:'ELEVATOR_LOCKED',switched?door:0);hall.gate.open=door>.9&&!switched;hall.gate.progress=switched?0:door;
  }
- function reset(){transformed=false;flash.style.opacity='0';state='ELEVATOR_LOCKED';t=clock=door=0;current=origin;switched=false;moving=false;from=savedCamera=exitFrom=null;origin.update(0,state,0);destination.update(0,state,0);}
+ function reset(){transformed=false;flash.style.opacity='0';state='ELEVATOR_LOCKED';t=clock=door=0;current=origin;switched=false;moving=false;from=savedCamera=exitFrom=null;destination.root.position.y=0;destination.root.visible=true;origin.update(0,state,0);destination.update(0,state,0);}
  reset();return {origin,destination,near,start,exit,update,reset,get transformed(){return transformed;},get state(){return state;},get time(){return t;},get moving(){return moving;},get active(){return !['ELEVATOR_LOCKED','ELEVATOR_READY','ELEVATOR_COMPLETE'].includes(state);},get awaitingExit(){return state==='ELEVATOR_ARRIVED';},get complete(){return state==='ELEVATOR_COMPLETE';}};
 }
