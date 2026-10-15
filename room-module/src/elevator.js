@@ -13,7 +13,13 @@ export function createElevatorVisual(root,width=2.4,height=3.4){
  for(let j=0;j<5;j++)strips.push(box(.022,.15,.65,sign*(width/2-.01),.4+j*.55,-2,glow));}
  box(width+.28,.12,.22,0,height+.02,0,gold);box(width+.1,.08,depth,0,-.04,-depth/2,metal);box(width+.1,.08,depth,0,height,-depth/2,metal);box(width+.15,height,.10,0,height/2,-depth,metal);box(width,.018,.10,0,.015,.05,glow);
  for(const y of[.012,height-.055]){const ring=new T.Mesh(new T.TorusGeometry(.72,.018,8,56),glow);ring.rotation.x=Math.PI/2;ring.position.set(0,y,-1.55);root.add(ring);}
- const title=plate('ОФИС БУДУЩЕГО',width,.31,'#9eeaff','#111722',65);title.position.set(0,height+.27,.12);root.add(title);
+ // Translucent neon floor trigger outside the elevator.
+  const pad=new T.Group();pad.name='neon-elevator-trigger';pad.position.set(0,.044,1.65);root.add(pad);
+  const padFill=new T.MeshBasicMaterial({color:'#9b9aff',transparent:true,opacity:.16,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
+  const padRim=new T.MeshBasicMaterial({color:'#bdabff',transparent:true,opacity:.54,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
+  const disc=new T.Mesh(new T.CircleGeometry(.78,64),padFill);disc.rotation.x=-Math.PI/2;pad.add(disc);
+  const rim=new T.Mesh(new T.RingGeometry(.75,.89,64),padRim);rim.rotation.x=-Math.PI/2;rim.position.y=.005;pad.add(rim);
+  const title=plate('ОФИС БУДУЩЕГО',width,.31,'#9eeaff','#111722',65);title.position.set(0,height+.27,.12);root.add(title);
  const inside=plate('ОФИС БУДУЩЕГО',width*.77,.44,'#b6eaff','#111722',65);inside.position.set(0,2.25,-depth+.07);root.add(inside);
  const arrived=plate('ВЫ ПРИБЫЛИ',width*.77,.44,'#b6eaff','#111722',65);arrived.position.copy(inside.position);arrived.position.z+=.005;arrived.visible=false;root.add(arrived);
  const journey=plate('02 → 03',1.3,.25,'#b6eaff','#111722',70);journey.position.set(0,height-.32,-.06);journey.rotation.y=Math.PI;root.add(journey);
@@ -21,25 +27,25 @@ export function createElevatorVisual(root,width=2.4,height=3.4){
  const panel=box(.22,.55,.10,width/2+.27,1.25,.08,metal);box(.12,.08,.014,0,-.11,.06,muted,panel);const button=new T.Mesh(new T.CylinderGeometry(.063,.063,.014,24),glow);button.rotation.x=Math.PI/2;button.position.set(0,.07,.06);panel.add(button);
  const light=new T.PointLight('#8bcfff',.45,5,2);light.position.set(0,2.6,-1.5);root.add(light);
  function doors(p){leaves.forEach((leaf,i)=>leaf.position.x=(i===0?-1:1)*(width/4+(width/2+.025)*p));}
- function update(time,state,p){doors(p);const unlocked=state!=='ELEVATOR_LOCKED',travel=state==='ELEVATOR_ASCENDING';glow.emissiveIntensity=unlocked?.7:.12;muted.emissiveIntensity=unlocked?.6:.04;light.intensity=unlocked?.85:.35;
+ function update(time,state,p){doors(p);const unlocked=state!=='ELEVATOR_LOCKED',travel=state==='ELEVATOR_ASCENDING';padFill.opacity=unlocked?.22:.08;padRim.opacity=unlocked?.8:.20;glow.emissiveIntensity=unlocked?.7:.12;muted.emissiveIntensity=unlocked?.6:.04;light.intensity=unlocked?.85:.35;
  strips.forEach((o,j)=>{o.visible=travel;if(travel)o.position.y=.2+((j*.55-time*1.1)%2.7+2.7)%2.7;});arrows.forEach((a,j)=>{a.material.color.setScalar(travel?.35+.65*Math.max(0,Math.sin(time*4-j)):unlocked?1:.3);});arrived.visible=['ELEVATOR_ARRIVED','ELEVATOR_EXITING','ELEVATOR_COMPLETE'].includes(state);inside.visible=!arrived.visible;title.material.color.setScalar(unlocked?1:.45);
  }
- return {root,leaves,button,update,doors,width,height,depth};
+ return {root,leaves,button,pad,update,doors,width,height,depth};
 }
 export function createElevatorController({hall,future,player,camera,enterDestination,onTransform,onExit}){
- const origin=createElevatorVisual(hall.gate.g,hall.gateWidth,hall.gateHeight),destination=createElevatorVisual(future.liftAnchor,hall.gateWidth,hall.gateHeight);hall.gate.leaves=origin.leaves;
+ const origin=createElevatorVisual(hall.gate.g,hall.gateWidth,hall.gateHeight),destination=createElevatorVisual(future.liftAnchor,hall.gateWidth,hall.gateHeight);hall.gate.leaves=origin.leaves;destination.pad.visible=false;
  let state='ELEVATOR_LOCKED',t=0,clock=0,door=0,current=origin,from=null,savedCamera=null,switched=false,moving=false,exitFrom=null,transformed=false;
  const flash=document.createElement('div');flash.id='lift-transform-flash';flash.setAttribute('aria-hidden','true');Object.assign(flash.style,{position:'fixed',inset:'0',background:'#e7deff',opacity:'0',pointerEvents:'none',zIndex:'20'});document.body.append(flash);
  const local=new T.Vector3(),dest=new T.Vector3(),look=new T.Vector3(),cp=new T.Vector3(),dummy=new T.PerspectiveCamera(),q=new T.Quaternion();
  function setState(s){state=s;t=0;}
  function world(v){current.root.updateWorldMatrix(true,false);return current.root.localToWorld(v);}
- function near(p){origin.root.updateWorldMatrix(true,false);local.copy(p);origin.root.worldToLocal(local);return local.z>.3&&local.z<2.7&&Math.abs(local.x)<1.35;}
+ function near(p){origin.root.updateWorldMatrix(true,false);local.copy(p);origin.root.worldToLocal(local);return Math.hypot(local.x,local.z-1.65)<=.89;}
  function start(){if(state!=='ELEVATOR_READY'||!near(player.position))return false;from=player.position.clone();savedCamera={position:camera.position.clone(),quaternion:camera.quaternion.clone()};current=origin;setState('ELEVATOR_OPENING');return true;}
  function exit(){if(state!=='ELEVATOR_ARRIVED')return false;exitFrom=player.position.clone();setState('ELEVATOR_EXITING');return true;}
  function placeCamera(x,y,z,lx,ly,lz,f=1){cp.set(x,y,z);world(cp);look.set(lx,ly,lz);world(look);dummy.position.copy(cp);dummy.lookAt(look);camera.position.lerp(cp,f);camera.quaternion.slerp(dummy.quaternion,f);}
  function orientToward(point,dt){const dx=point.x-player.position.x,dz=point.z-player.position.z;if(Math.hypot(dx,dz)<.01)return;const a=Math.atan2(-dx,-dz);player.rotation.y+=Math.atan2(Math.sin(a-player.rotation.y),Math.cos(a-player.rotation.y))*(1-Math.exp(-dt*10));}
  function switchRooms(){if(switched)return;switched=true;const a=origin.root,b=destination.root;a.updateWorldMatrix(true,false);b.updateWorldMatrix(true,false);const pp=a.worldToLocal(player.position.clone()),cc=a.worldToLocal(camera.position.clone());const aq=a.getWorldQuaternion(new T.Quaternion()),bq=b.getWorldQuaternion(new T.Quaternion()),delta=bq.multiply(aq.invert());const cq=delta.clone().multiply(camera.quaternion);const fov=camera.fov;enterDestination();camera.fov=fov;camera.updateProjectionMatrix();current=destination;b.updateWorldMatrix(true,false);player.position.copy(b.localToWorld(pp));camera.position.copy(b.localToWorld(cc));camera.quaternion.copy(cq);player.rotation.y=current.root.rotation.y+Math.PI;}
- function update(dt){clock+=dt;moving=false;if(state==='ELEVATOR_LOCKED'&&hall.reactorFilled)setState('ELEVATOR_READY');
+ function update(dt){clock+=dt;moving=false;if(state==='ELEVATOR_LOCKED'&&hall.reactorFilled)setState('ELEVATOR_READY');if(state==='ELEVATOR_READY'&&near(player.position))start();
  t+=dt;const f=1-Math.exp(-dt*7);
  if(state==='ELEVATOR_OPENING'){door=smooth((t-.25)/1.3);placeCamera(.35,2.15,3.0,0,1.35,-.6,f);if(t>=1.8)setState('ELEVATOR_BOARDING');}
  else if(state==='ELEVATOR_BOARDING'){const p=smooth(t/2);const point=world(new T.Vector3(0,0,t<.65?.7:-1.45));orientToward(point,dt);if(t<.65){dest.copy(from).lerp(point,smooth(t/.65));}else{dest.copy(world(new T.Vector3(0,0,.7))).lerp(point,smooth((t-.65)/1.35));}player.position.copy(dest);moving=true;placeCamera(.65,2.05,3.0-5.85*p,0,1.25,-.15,f);if(t>=2){player.rotation.y=current.root.rotation.y+Math.PI;placeCamera(.65,2.05,-2.85,0,1.25,.15);setState('ELEVATOR_CLOSING');}}
