@@ -1,6 +1,6 @@
 import * as T from '../vendor/three.module.js';
 import {GLTFLoader} from '../vendor/loaders/GLTFLoader.js';
-import {CharacterAnimationR8, R8_CLIPS} from './character-animation-r8.js';
+import {CharacterAnimationR8, R8_CLIPS, R8_LOCOMOTION} from './character-animation-r8.js';
 
 const $ = id => document.getElementById(id);
 const status = text => { $('status').textContent = text; };
@@ -44,7 +44,8 @@ $('model').onchange=async event=>{
   for(const [i,clip] of gltf.animations.entries()){const option=document.createElement('option');option.value=i;option.textContent=clip.name+' ('+clip.duration.toFixed(2)+' с)';select.append(option);}
   select.disabled=!gltf.animations.length;$('play').disabled=!gltf.animations.length;$('rest').disabled=false;
   const missing=Object.values(R8_CLIPS).filter(name=>!gltf.animations.some(c=>c.name===name&&c.tracks.length));
-  $('enable').disabled=!skins||missing.length>0;
+  $('enable').disabled=!skins||R8_LOCOMOTION.some(key=>missing.includes(R8_CLIPS[key]));
+  const measured=gltf.parser.json.asset.extras?.r8?.clips?.Walk?.referenceSpeed;if(Number.isFinite(measured))$('walk-speed').value=measured.toFixed(4);
   $('info').textContent=JSON.stringify({file:file.name,bytes:file.size,originalDimensions:size.toArray(),displayHeight:1.7,triangles,skinnedMeshes:skins,bones,clips:gltf.animations.map(c=>c.name),missingR8Clips:missing},null,2);
   status(!skins?'Скелет отсутствует. Доступен осмотр геометрии; ходьба не включена.':missing.length?'Скелет найден. Для полного теста R8 не хватает клипов.':'Скелет и клипы найдены. Требуется визуальная проверка.');
   face=false;yaw=0;pitch=.1;distance=3.2;
@@ -57,8 +58,8 @@ for(const button of document.querySelectorAll('[data-view]'))button.onclick=()=>
 $('play').onclick=()=>{resetPreview();const clip=gltf.animations[Number($('clips').value)];active=mixer.clipAction(clip);active.play();status('Встроенный клип: '+clip.name+'. Качество движения оценивается визуально.');};
 $('rest').onclick=()=>{resetPreview();if(gltf){root.traverse(o=>{if(o.isSkinnedMesh)o.pose();});}status('Поза покоя.');};
 $('enable').onclick=()=>{
- try {resetPreview();controller=new CharacterAnimationR8(gltf.scene,gltf.animations,{walkSpeed:Number($('walk-speed').value)});mixer=null;
-  for(const button of document.querySelectorAll('[data-gesture]'))button.disabled=false;
+ try {resetPreview();controller=new CharacterAnimationR8(gltf.scene,gltf.animations,{walkSpeed:Number($('walk-speed').value),requiredStates:R8_LOCOMOTION});mixer=null;
+  for(const button of document.querySelectorAll('[data-gesture]'))button.disabled=!controller.actions[button.dataset.gesture];
   status('Тест управления активен. Проверьте контакт стоп и длину шага.');
  }catch(error){status(error.message);}
 };
@@ -67,7 +68,7 @@ addEventListener('keydown',e=>{if(['INPUT','SELECT'].includes(e.target.tagName))
  const k=e.key.toLowerCase();keys.add(k);if(k.startsWith('arrow'))e.preventDefault();
  if(controller&&!e.repeat){if((k==='q'||k==='r')&&controller.state==='idle'){
   const side=k==='q'?'left':'right';controller.update(0,{speed:0,turn:side});
-  turnPlan={start:player.rotation.y,angle:(k==='q'?1:-1)*Math.PI/2,time:0,duration:controller.active.getClip().duration};
+  turnPlan={start:player.rotation.y,angle:T.MathUtils.degToRad(gltf.parser.json.asset.extras?.r8?.clips?.[k==='q'?'TurnLeft':'TurnRight']?.turnAngleDegrees||(k==='q'?90:-90)),time:0,duration:controller.active.getClip().duration};
  }if(k==='e')controller.trigger('interact');}
 });
 addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));addEventListener('blur',()=>keys.clear());

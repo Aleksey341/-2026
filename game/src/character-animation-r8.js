@@ -5,6 +5,7 @@ export const R8_CLIPS = Object.freeze({
   turnLeft: 'TurnLeft', turnRight: 'TurnRight', interact: 'Interact',
   reach: 'Reach', wear: 'WearVR'
 });
+export const R8_LOCOMOTION = Object.freeze(['idle','walk','start','stop','turnLeft','turnRight']);
 const LOOPS = new Set(['idle', 'walk']);
 const GESTURES = new Set(['interact', 'reach', 'wear']);
 
@@ -14,7 +15,7 @@ const GESTURES = new Set(['interact', 'reach', 'wear']);
  * This controller is staged for integration after a real rigged GLB is accepted.
  */
 export class CharacterAnimationR8 {
-  constructor(root, clips, {names = R8_CLIPS, walkSpeed, fade = .18} = {}) {
+  constructor(root, clips, {names = R8_CLIPS, walkSpeed, fade = .18, requiredStates = Object.keys(R8_CLIPS)} = {}) {
     if (!(Number.isFinite(walkSpeed) && walkSpeed > 0)) {
       throw new Error('R8: measured Walk reference speed is required');
     }
@@ -23,7 +24,8 @@ export class CharacterAnimationR8 {
       const candidates = clips.filter(c => c.name === names[key]);
       if (candidates.length !== 1 || !candidates[0].tracks.length ||
           !(candidates[0].duration > 0)) {
-        throw new Error(`R8: supply one non-empty clip for ${key}: ${names[key]}`);
+        if(requiredStates.includes(key))throw new Error(`R8: supply one non-empty clip for ${key}: ${names[key]}`);
+        continue;
       }
       resolved[key] = candidates[0];
     }
@@ -65,7 +67,7 @@ export class CharacterAnimationR8 {
   trigger(gesture) {
     if (!GESTURES.has(gesture)) throw new Error('R8: unknown gesture '+gesture);
     if (this.disposed) throw new Error('R8: controller disposed');
-    if (this.gesture) return false;
+    if (!this.actions[gesture] || this.gesture) return false;
     this.gesture = gesture;
     this.play(gesture);
     return true;
