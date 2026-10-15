@@ -26,6 +26,19 @@ export function curvedLabel(text,r,h,y,color,arc=2.5){
  const c=document.createElement('canvas');c.width=2048;c.height=256;const x=c.getContext('2d');x.textAlign='center';x.textBaseline='middle';x.font='600 125px Arial';x.fillStyle=color;x.shadowColor=color;x.shadowBlur=10;x.fillText(text,1024,128,1950);const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;
  const m=new T.Mesh(new T.CylinderGeometry(r,r,h,100,1,true,-arc/2,arc),new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));m.position.y=y;return m;
 }
+// A seamless text ribbon around the full perimeter; only UV offset changes per frame.
+export function scrollingLabel(text,r,h,y,color){
+ const c=document.createElement('canvas'),ctx=c.getContext('2d');ctx.font='600 125px Arial';
+ c.width=Math.ceil(Math.max(512,ctx.measureText(text).width+220));c.height=256;
+ ctx.font='600 125px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.fillText(text,c.width/2,128);
+ const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.wrapS=T.RepeatWrapping;
+ map.repeat.x=2*Math.PI/2.5;
+ const label=new T.Mesh(new T.CylinderGeometry(r,r,h,128,1,true),new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));
+ label.position.y=y;label.name='scrolling-title';return label;
+}
+function scrollTitle(label,dt){label.material.map.offset.x=(label.material.map.offset.x+Math.max(0,dt)*.055)%1;}
+const cubeTrim=new T.MeshStandardMaterial({color:'#30343b',roughness:.42,metalness:.55});
+
 export function vrHeadset(){
   const g=new T.Group();g.name='VR-headset';
   rounded(g,.22,.11,.06,.037,cream,0,0,-.023);
@@ -58,11 +71,11 @@ function robot(parent,x,z,rotation=0){
 
 export function showcase(i,theme){
   const g=new T.Group();g.name='showcase-'+i;
-  cylinder(g,1.4,.18,graphite,0,.09,0);cylinder(g,1.3,.35,cream,0,.34,0);
-  cylinder(g,1.24,.055,brass,0,.54,0);cylinder(g,1.22,1.6,glass,0,1.36,0);
-  cylinder(g,1.28,.08,brass,0,2.19,0);cylinder(g,1.3,.34,graphite,0,2.39,0);
-  for(const x of[-1.13,1.13])cylinder(g,.029,1.62,brass,x,1.36,0);
-  g.add(curvedLabel(theme.name,1.306,.27,2.39,theme.color));
+  cylinder(g,1.4,.18,cubeTrim,0,.09,0);cylinder(g,1.3,.35,cubeTrim,0,.34,0);
+  cylinder(g,1.24,.055,cubeTrim,0,.54,0);cylinder(g,1.22,1.6,glass,0,1.36,0);
+  cylinder(g,1.28,.08,cubeTrim,0,2.19,0);cylinder(g,1.3,.34,cubeTrim,0,2.39,0);
+  for(const x of[-1.13,1.13])cylinder(g,.029,1.62,cubeTrim,x,1.36,0);
+  const title=scrollingLabel(theme.name,1.306,.27,2.39,theme.color);g.add(title);
   const statusMat=activeMaterial('#182c2e'),ring=mesh(g,new T.TorusGeometry(1.24,.022,10,80),statusMat,0,.56,0);ring.rotation.x=Math.PI/2;
   const robots=[robot(g,-.65,0,Math.PI/2-.25),robot(g,.65,0,-Math.PI/2+.25)];
   const moving=[];
@@ -81,7 +94,7 @@ export function showcase(i,theme){
   const liquidMat=new T.MeshStandardMaterial({color:theme.color,emissive:theme.color,emissiveIntensity:1.35,transparent:true,opacity:.52,roughness:.25,metalness:.1,depthWrite:false});
  const liquid=cylinder(g,1.18,1.53,liquidMat,0,.59,0);liquid.scale.y=.001;liquid.name='energy-liquid';
  const illumination=new T.PointLight(theme.color,0,6,2);illumination.position.set(0,1.8,0);g.add(illumination);
-  return {story,clock:i*1.37,near:false,wasNear:false,nearTime:99,completion:0,completing:false,energyReady:false,progressPulse:0,state:"IDLE",liquid,fillLevel:0,i,g,panel,buttons,lamps,meter,robots,moving,ring,illumination,opened:false,activated:false,openedAt:0};
+  return {title,story,clock:i*1.37,near:false,wasNear:false,nearTime:99,completion:0,completing:false,energyReady:false,progressPulse:0,state:"IDLE",liquid,fillLevel:0,i,g,panel,buttons,lamps,meter,robots,moving,ring,illumination,opened:false,activated:false,openedAt:0};
 }
 
 export function markProject(p,j,color,total){
@@ -139,7 +152,7 @@ function efficiency(p,t,dt){const o=p.story.objects,result=envelope(t,6,6.8,8,9.
 }
 const scenarios=[hiring,retention,care,efficiency];
 export function animateShowcase(p,dt,time,color){
- dt=Math.max(0,Math.min(dt,.1));const story=p.story;
+ dt=Math.max(0,Math.min(dt,.1));scrollTitle(p.title,dt);const story=p.story;
  if(p.near&&!p.wasNear)p.nearTime=0;p.wasNear=p.near;p.nearTime+=dt;
  p.state=p.completing?'COMPLETED':p.opened?'VIEWING':p.activated?'COMPLETED':p.progressPulse>.1?'PROGRESS':p.near?'PLAYER_NEAR':'IDLE';
  story.dim=T.MathUtils.damp(story.dim,p.opened?.28:1,6,dt);
@@ -171,16 +184,16 @@ export function animateShowcase(p,dt,time,color){
 
 export function energyReactor(colors){
   const g=new T.Group(),fills=[];
-  cylinder(g,1.65,.25,graphite,0,.125,0);cylinder(g,1.51,.3,cream,0,.4,0);cylinder(g,1.46,.07,brass,0,.59,0);
-  cylinder(g,1.23,2.65,glass,0,1.96,0);cylinder(g,1.47,.08,brass,0,3.34,0);cylinder(g,1.52,.18,cream,0,3.47,0);
+  cylinder(g,1.65,.25,cubeTrim,0,.125,0);cylinder(g,1.51,.3,cubeTrim,0,.4,0);cylinder(g,1.46,.07,cubeTrim,0,.59,0);
+  cylinder(g,1.23,2.65,glass,0,1.96,0);cylinder(g,1.47,.08,cubeTrim,0,3.34,0);cylinder(g,1.52,.34,cubeTrim,0,3.55,0);
   for(let i=0;i<4;i++){
     const a=Math.PI/4+i*Math.PI/2,x=Math.cos(a)*.62,z=Math.sin(a)*.62;
-    cylinder(g,.205,2.3,glass,x,1.89,z);cylinder(g,.23,.075,brass,x,.7,z);cylinder(g,.23,.075,brass,x,3.05,z);
+    cylinder(g,.205,2.3,glass,x,1.89,z);cylinder(g,.23,.075,cubeTrim,x,.7,z);cylinder(g,.23,.075,cubeTrim,x,3.05,z);
     const fill=cylinder(g,.165,2.25,activeMaterial(colors[i]),x,.76,z);fill.material.emissiveIntensity=2;fill.scale.y=.001;fills.push(fill);
   }
   const core=mesh(g,new T.TorusGeometry(.27,.05,16,48),brass,0,1.9,0);
-  g.add(curvedLabel('Ростелеком',1.515,.25,.4,'#ffffff',2.1));
-  return {g,fills,core};
+  const title=scrollingLabel('Ростелеком',1.526,.27,3.55,'#ffffff');g.add(title);
+  return {g,fills,core,title,update(dt){scrollTitle(title,dt);},reset(){title.material.map.offset.x=0;}};
 }
 
 export function energyPipe(start,end,color){
