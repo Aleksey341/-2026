@@ -1,0 +1,1 @@
+{"passed":true,"transitions":[{"variant":"base","walk":true,"stop":true,"oldBodyVisible":false},{"variant":"future","walk":true,"stop":true,"oldBodyVisible":false},{"variant":"base","walk":true,"stop":true,"oldBodyVisible":false}],"note":"Real GLB/adapter test; does not replace browser room-traversal or visual acceptance."}
