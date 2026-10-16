@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>БОРУП · Лич · Проверка игрового GLB</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#0d101b;color:#e7e5f3;font:14px system-ui,sans-serif}canvas{display:block;width:100%;height:100%}#panel{position:fixed;z-index:2;left:12px;top:12px;width:min(365px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;border:1px solid #59617d;background:#161b2eec;border-radius:12px;padding:16px;box-shadow:0 8px 40px #0009}h1{font-size:18px;margin:0 0 10px}label{display:block;margin:12px 0 4px}input,select,button{font:inherit}input[type=file],select{max-width:100%;width:100%}select{background:#252d49;color:#fff;padding:8px;border:1px solid #5b6884;border-radius:6px}button{background:#323d65;border:1px solid #7786b5;color:white;border-radius:7px;padding:8px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.views{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}.views button{flex:1}.muted{color:#bac1d8}#status{font-weight:600;color:#c6c7ff}pre{white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.5;border-top:1px solid #3b4666;padding-top:8px}a{color:#c7b2ff}small{display:block;line-height:1.45}.sub{font-size:12px}
+</style>
+<script type="importmap">{"imports":{"room-module/vendor/three.module.js":"./room-module/vendor/three.module.js","room-module/vendor/three.core.js":"./room-module/vendor/three.core.js","room-module/vendor/loaders/GLTFLoader.js":"./room-module/vendor/loaders/GLTFLoader.js","room-module/vendor/utils/BufferGeometryUtils.js":"./room-module/vendor/utils/BufferGeometryUtils.js"}}</script>
+</head>
+<body>
+<div id="panel"><h1>БОРУП · Лич · 3D-лаборатория</h1>
+<p class="muted">Изолированная проверка перед интеграцией в игру. Исходная R16 не меняется.</p>
+<label for="model">Готовая 3D-модель (.glb)</label><input id="model" type="file" accept=".glb,model/gltf-binary">
+<div class="views"><button data-view="front">Спереди</button><button data-view="side">Сбоку</button><button data-view="back">Сзади</button><button data-view="face">Лицо</button></div>
+<label for="clips">Анимация в модели</label><select id="clips" disabled><option>Сначала загрузите GLB</option></select>
+<button id="play" disabled>Запустить / остановить</button>
+<label for="speed">Скорость анимации <output id="speedout">1.0×</output></label><input id="speed" type="range" min="0.25" max="2" step="0.05" value="1">
+<label for="orientation">Разворот модели <output id="orientationout">0°</output></label><input id="orientation" type="range" min="0" max="360" step="5" value="0">
+<p id="status" role="status">Ожидаю настоящий GLB. Фотография и 2D-референсы не являются 3D-моделью.</p>
+<pre id="report">После загрузки проверю меши, скелет, треугольники, материалы и анимации.</pre>
+<small class="muted">Мышь: вращение камеры; колесо: приближение. Файл обрабатывается локально, не отправляется на сервер. Для работы запустите HTTP-сервер из корня репозитория и откройте эту страницу.</small></div>
+<canvas id="stage"></canvas>
+<script type="module">
+import * as THREE from 'room-module/vendor/three.module.js';
+import { GLTFLoader } from 'room-module/vendor/loaders/GLTFLoader.js';
+const $=id=>document.getElementById(id);
+const scene=new THREE.Scene();scene.background=new THREE.Color('#111425');
+const camera=new THREE.PerspectiveCamera(48,1,.05,100);camera.position.set(3,2.6,5);
+const renderer=new THREE.WebGLRenderer({canvas:$('stage'),antialias:true,preserveDrawingBuffer:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+scene.add(new THREE.HemisphereLight('#d7dcff','#24202b',2.0));
+const light=new THREE.DirectionalLight('#fff2e5',3.0);light.position.set(3,7,5);light.castShadow=true;light.shadow.mapSize.set(1024,1024);scene.add(light);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(60,60),new THREE.MeshStandardMaterial({color:'#181c29',roughness:.95}));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const grid=new THREE.GridHelper(18,36,'#46475d','#2c3046');grid.position.y=.004;scene.add(grid);
+const stage=new THREE.Group();scene.add(stage);
+let mixer=null, currentAction=null, clips=[],elapsed=performance.now(),running=true,focusHeight=1.15,angle=.55,tilt=.26,distance=4.6,dragging=false,lastX=0,lastY=0;
+function setView(view){if(view==='front'){angle=0;tilt=.18;distance=4.2}else if(view==='side'){angle=Math.PI/2;tilt=.18;distance=4.2}else if(view==='back'){angle=Math.PI;tilt=.18;distance=4.2}else if(view==='face'){angle=0;tilt=.11;distance=1.45}cameraUpdate()}
+function cameraUpdate(){const target=new THREE.Vector3(0,focusHeight,0);camera.position.set(Math.sin(angle)*Math.cos(tilt)*distance,focusHeight+Math.sin(tilt)*distance,Math.cos(angle)*Math.cos(tilt)*distance);camera.lookAt(target)}
+function fit(){const w=window.innerWidth,h=window.innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix()}
+fit();cameraUpdate();window.addEventListener('resize',fit);
+const canvas=renderer.domElement;canvas.addEventListener('pointerdown',e=>{dragging=true;lastX=e.clientX;lastY=e.clientY;canvas.setPointerCapture(e.pointerId)});canvas.addEventListener('pointerup',()=>dragging=false);canvas.addEventListener('pointermove',e=>{if(!dragging)return;angle-=(e.clientX-lastX)*.007;tilt=THREE.MathUtils.clamp(tilt+(e.clientY-lastY)*.005,-.45,1.3);lastX=e.clientX;lastY=e.clientY;cameraUpdate()});canvas.addEventListener('wheel',e=>{e.preventDefault();distance=THREE.MathUtils.clamp(distance*Math.exp(e.deltaY*.001),.65,18);cameraUpdate()},{passive:false});
+for(const btn of document.querySelectorAll('[data-view]'))btn.addEventListener('click',()=>setView(btn.dataset.view));
+$('speed').addEventListener('input',()=>{$('speedout').textContent=Number($('speed').value).toFixed(2)+'×'});$('orientation').addEventListener('input',()=>{stage.rotation.y=Number($('orientation').value)*Math.PI/180;$('orientationout').textContent=$('orientation').value+'°'});
+function selectClip(name){if(!mixer)return;const clip=clips.find(c=>c.name===name);if(!clip)return;const action=mixer.clipAction(clip);action.reset().setLoop(THREE.LoopRepeat,Infinity).play();if(currentAction&&currentAction!==action)currentAction.fadeOut(.22);action.fadeIn(.22);currentAction=action;running=true;$('play').textContent='Остановить'}
+$('clips').addEventListener('change',()=>selectClip($('clips').value));$('play').addEventListener('click',()=>{if(!mixer)return;running=!running;$('play').textContent=running?'Остановить':'Продолжить'});
+$('model').addEventListener('change',async e=>{
+ const file=e.target.files?.[0];if(!file)return;$('status').textContent='Читаю файл и геометрию…';$('clips').disabled=true;$('play').disabled=true;
+ try{
+  const buffer=await file.arrayBuffer();const gltf=await new GLTFLoader().parseAsync(buffer,'');
+  stage.clear();stage.rotation.y=0;$('orientation').value=0;$('orientationout').textContent='0°';
+  const root=gltf.scene;stage.add(root);root.updateMatrixWorld(true);
+  const bbox=new THREE.Box3().setFromObject(root);const boxSize=bbox.getSize(new THREE.Vector3());if(boxSize.y<.0001)throw Error('Пустая или плоская геометрия');
+  // Normalize display height without changing the supplied GLB.
+  const sc=2.1/boxSize.y;root.scale.setScalar(sc);root.updateMatrixWorld(true);const corrected=new THREE.Box3().setFromObject(root),center=corrected.getCenter(new THREE.Vector3());root.position.set(-center.x,-corrected.min.y,-center.z);
+  focusHeight=1.12;distance=4.6;setView('front');
+  let meshes=0,skinned=0,bones=0,triangles=0,materials=new Set(),textures=new Set();
+  root.traverse(o=>{if(o.isBone)bones++;if(o.isMesh){meshes++;if(o.isSkinnedMesh)skinned++;const g=o.geometry;triangles+=g.index?Math.floor(g.index.count/3):Math.floor((g.attributes.position?.count||0)/3);o.castShadow=true;o.receiveShadow=true;for(const m of Array.isArray(o.material)?o.material:[o.material]){if(!m)continue;materials.add(m);for(const key of ['map','normalMap','roughnessMap','metalnessMap','emissiveMap','aoMap'])if(m[key])textures.add(m[key]);}}});
+  clips=gltf.animations||[];mixer=new THREE.AnimationMixer(root);currentAction=null;running=true;
+  $('clips').replaceChildren();if(clips.length){for(const c of clips){const op=document.createElement('option');op.value=c.name;op.textContent=c.name+' ('+c.duration.toFixed(2)+' c)';$('clips').append(op)}$('clips').disabled=false;$('play').disabled=false;selectClip(clips[0].name)}else{$('clips').add(new Option('Клипов нет',''));$('play').textContent='Нет анимаций';}
+  $('report').textContent=JSON.stringify({file:file.name,bytes:file.size,geometry:{meshes,skinned,bones,triangles},materials:materials.size,uniqueTextures:textures.size,animations:clips.map(c=>({name:c.name,duration:+c.duration.toFixed(3)})),warnings:[...(skinned===0?['Нет skinned mesh: риг нужно проверить или добавить']:[]),...(clips.length===0?['Нет анимаций: Idle/Walk/Cast ещё не импортированы']:[]),...(textures.size===0?['Нет обнаруженных PBR-текстур']:[])]},null,2);
+  $('status').textContent='GLB загружен. Осмотри лицо, корону, пальцы, плащ, посох и анимации.';
+ }catch(err){console.error(err);$('status').textContent='Ошибка GLB: '+(err?.message||String(err));$('report').textContent='Не изменяй исходный файл. Проверь валидность glTF/GLB и внешние ресурсы.'}
+});
+// Automatically load the checked-in GLB when present; file picker still works offline.
+(async()=>{
+ try{
+  const url='./assets/characters/stained-glass-lich/lich_kp13_animated_npc.glb';
+  const res=await fetch(url,{cache:'no-store'});if(!res.ok)return;
+  const buffer=await res.arrayBuffer();
+  const data=new DataTransfer();
+  data.items.add(new File([buffer],'lich_kp13_animated_npc.glb',{type:'model/gltf-binary'}));
+  $('model').files=data.files;
+  $('model').dispatchEvent(new Event('change',{bubbles:true}));
+ }catch(err){console.info('[LICH] Auto-load not available:',String(err))}
+})();
+function frame(now){requestAnimationFrame(frame);const dt=Math.min(.04,Math.max(0,(now-elapsed)/1000));elapsed=now;if(mixer&&running)mixer.update(dt*Number($('speed').value));renderer.render(scene,camera)}requestAnimationFrame(frame);
+</script></body></html>
