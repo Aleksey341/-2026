@@ -9,6 +9,7 @@ import {
   attachShowcaseRimLight,
   own,
 } from './graphite-r16.js';
+import {attachReactorSphere} from './r16-reactor-core.js?v=r16-v2-5';
 
 const metal=new T.MeshPhysicalMaterial({color:'#aab1b0',metalness:.8,roughness:.32});
 const brass=new T.MeshPhysicalMaterial({color:'#a58b54',metalness:.78,roughness:.33});
@@ -209,26 +210,42 @@ export function animateShowcase(p,dt,time,color){
 export function energyReactor(colors){
   const g=new T.Group(),fills=[];
   const useR16=r16Enabled();
-  // Decorative housing only — flask glass / fills / flask end-caps stay on original materials.
-  const body=useR16?own(createGraphiteMaterial('#6ec8ff',{emissiveIntensity:.1,color:0x454e5c})):cubeTrim;
-  const crown=useR16?own(createGraphiteBandMaterial('#6ec8ff')):cubeTrim;
+  // Decorative housing — dark graphite (not teal plastic). Flasks/fills stay functional.
+  const body=useR16?own(createGraphiteMaterial('#445566',{emissiveIntensity:.04,color:0x151a22,metalness:.94,roughness:.3})):cubeTrim;
+  const crown=useR16?own(createGraphiteMaterial('#556677',{emissiveIntensity:.06,color:0x222a35,metalness:.92,roughness:.24,clearcoat:.55})):cubeTrim;
+  const shellGlass=useR16?own(new T.MeshPhysicalMaterial({color:'#a8c0d0',transparent:true,opacity:.06,roughness:.04,metalness:.08,depthWrite:false})):glass;
   tag(cylinder(g,1.65,.25,body,0,.125,0),useR16?'reactor-trim':undefined);
   tag(cylinder(g,1.51,.3,body,0,.4,0),useR16?'reactor-trim':undefined);
   tag(cylinder(g,1.46,.07,crown,0,.59,0),useR16?'reactor-band':undefined);
-  cylinder(g,1.23,2.65,glass,0,1.96,0);
+  cylinder(g,1.23,2.65,shellGlass,0,1.96,0);
   tag(cylinder(g,1.47,.08,crown,0,3.34,0),useR16?'reactor-band':undefined);
   tag(cylinder(g,1.52,.34,crown,0,3.55,0),useR16?'reactor-band':undefined);
   for(let i=0;i<4;i++){
     const a=Math.PI/4+i*Math.PI/2,x=Math.cos(a)*.62,z=Math.sin(a)*.62;
-    cylinder(g,.205,2.3,glass,x,1.89,z);cylinder(g,.23,.075,cubeTrim,x,.7,z);cylinder(g,.23,.075,cubeTrim,x,3.05,z);
+    cylinder(g,.205,2.3,shellGlass,x,1.89,z);cylinder(g,.23,.075,useR16?body:cubeTrim,x,.7,z);cylinder(g,.23,.075,useR16?body:cubeTrim,x,3.05,z);
     const fill=cylinder(g,.165,2.25,activeMaterial(colors[i]),x,.76,z);fill.material.emissiveIntensity=2;fill.scale.y=.001;fills.push(fill);
   }
-  const core=mesh(g,new T.TorusGeometry(.27,.05,16,48),brass,0,1.9,0);
-  const title=scrollingLabel('Ростелеком',1.526,.27,3.55,useR16?'#dcefff':'#ffffff');g.add(title);
+  // Legacy brass torus kept for R15; R16 swaps in spherical core (same `.rotation` API).
+  let core=mesh(g,new T.TorusGeometry(.27,.05,16,48),brass,0,1.9,0);
+  let sphereApi=null;
   if(useR16){
-    const halo=new T.PointLight('#5ab0ff',.55,8,2);halo.position.set(0,2.4,0);halo.castShadow=false;halo.userData.r16='reactor-halo';g.add(halo);
+    core.visible=false;
+    sphereApi=attachReactorSphere(g,{y:1.9,radius:.62});
+    if(sphereApi) core=sphereApi;
   }
-  return {g,fills,core,title,update(dt){scrollTitle(title,dt);},reset(){title.material.map.offset.x=0;}};
+  const title=scrollingLabel('Ростелеком',1.526,.27,3.55,useR16?'#c8fff6':'#ffffff');g.add(title);
+  if(useR16){
+    const halo=new T.PointLight('#00e8d8',.7,8,2);halo.position.set(0,2.5,0);halo.castShadow=false;halo.userData.r16='reactor-halo';g.add(halo);
+  }
+  return {g,fills,core,title,sphere:sphereApi,
+    update(dt){
+      scrollTitle(title,dt);
+      if(sphereApi) sphereApi.update(dt,fills.map(f=>f.scale.y));
+    },
+    reset(){
+      title.material.map.offset.x=0;
+      if(sphereApi) sphereApi.reset();
+    }};
 }
 
 export function energyPipe(start,end,color){

@@ -1,10 +1,14 @@
 import * as T from 'room-module/vendor/three.module.js';
 import {plate} from 'room-module/src/retro.js';
+import {r16Enabled} from './graphite-r16.js';
+import {attachR16ElevatorCabin,restyleElevatorMaterials} from './r16-elevator-cabin.js?v=r16-v2-6';
 const smooth=x=>{x=T.MathUtils.clamp(x,0,1);return x*x*(3-2*x);};
 export function createElevatorVisual(root,width=2.4,height=3.4){
  root.clear();root.scale.set(1,1,1);const depth=3.4,leaves=[],strips=[],arrows=[];
- const dark=new T.MeshStandardMaterial({color:'#111722',metalness:.45,roughness:.47}),metal=new T.MeshStandardMaterial({color:'#252c38',metalness:.65,roughness:.36}),gold=new T.MeshStandardMaterial({color:'#b89154',metalness:.75,roughness:.3});
- const glow=new T.MeshStandardMaterial({color:'#75dcff',emissive:'#38bfff',emissiveIntensity:.2}),muted=new T.MeshStandardMaterial({color:'#355669',emissive:'#38bfff',emissiveIntensity:.1});
+ const useR16=r16Enabled();
+ const dark=new T.MeshStandardMaterial({color:useR16?'#1e2430':'#111722',metalness:useR16?.75:.45,roughness:useR16?.32:.47}),metal=new T.MeshStandardMaterial({color:useR16?'#2a3340':'#252c38',metalness:useR16?.82:.65,roughness:useR16?.28:.36}),gold=new T.MeshStandardMaterial({color:useR16?'#3a4555':'#b89154',metalness:.75,roughness:.3});
+ const glow=new T.MeshStandardMaterial({color:useR16?'#3defff':'#75dcff',emissive:useR16?'#3defff':'#38bfff',emissiveIntensity:.2}),muted=new T.MeshStandardMaterial({color:'#355669',emissive:useR16?'#3defff':'#38bfff',emissiveIntensity:.1});
+ restyleElevatorMaterials({dark,metal,glow});
  function box(w,h,d,x,y,z,m=dark,parent=root){const o=new T.Mesh(new T.BoxGeometry(w,h,d),m);o.position.set(x,y,z);parent.add(o);return o;}
  // Door pockets are outside the original aperture; leaves slide parallel inside the wall.
  for(const sign of[-1,1]){box(.12,height+.12,.20,sign*(width/2+.07),height/2,0,gold);box(.025,height-.05,.025,sign*(width/2-.035),height/2,.12,glow);
@@ -13,10 +17,10 @@ export function createElevatorVisual(root,width=2.4,height=3.4){
  for(let j=0;j<5;j++)strips.push(box(.022,.15,.65,sign*(width/2-.01),.4+j*.55,-2,glow));}
  box(width+.28,.12,.22,0,height+.02,0,gold);box(width+.1,.08,depth,0,-.04,-depth/2,metal);box(width+.1,.08,depth,0,height,-depth/2,metal);box(width+.15,height,.10,0,height/2,-depth,metal);box(width,.018,.10,0,.015,.05,glow);
  for(const y of[.012,height-.055]){const ring=new T.Mesh(new T.TorusGeometry(.72,.018,8,56),glow);ring.rotation.x=Math.PI/2;ring.position.set(0,y,-1.55);root.add(ring);}
- // Translucent neon floor trigger outside the elevator.
+ // Translucent neon floor trigger outside the elevator — position/radius locked for near().
   const pad=new T.Group();pad.name='neon-elevator-trigger';pad.position.set(0,.044,1.65);root.add(pad);
-  const padFill=new T.MeshBasicMaterial({color:'#9b9aff',transparent:true,opacity:.16,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
-  const padRim=new T.MeshBasicMaterial({color:'#bdabff',transparent:true,opacity:.54,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
+  const padFill=new T.MeshBasicMaterial({color:useR16?'#5ef0ff':'#9b9aff',transparent:true,opacity:.16,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
+  const padRim=new T.MeshBasicMaterial({color:useR16?'#9af7ff':'#bdabff',transparent:true,opacity:.54,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending});
   const disc=new T.Mesh(new T.CircleGeometry(.78,64),padFill);disc.rotation.x=-Math.PI/2;pad.add(disc);
   const rim=new T.Mesh(new T.RingGeometry(.75,.89,64),padRim);rim.rotation.x=-Math.PI/2;rim.position.y=.005;pad.add(rim);
   const title=plate('ОФИС БУДУЩЕГО',width,.31,'#9eeaff','#111722',65);title.position.set(0,height+.27,.12);root.add(title);
@@ -25,10 +29,12 @@ export function createElevatorVisual(root,width=2.4,height=3.4){
  const journey=plate('02 → 03',1.3,.25,'#b6eaff','#111722',70);journey.position.set(0,height-.32,-.06);journey.rotation.y=Math.PI;root.add(journey);
  for(let j=0;j<3;j++){const a=plate('↑',.15,.18,'#8eeaff','#111722',95);a.position.set((j-1)*.23,1.67,-depth+.065);root.add(a);arrows.push(a);}
  const panel=box(.22,.55,.10,width/2+.27,1.25,.08,metal);box(.12,.08,.014,0,-.11,.06,muted,panel);const button=new T.Mesh(new T.CylinderGeometry(.063,.063,.014,24),glow);button.rotation.x=Math.PI/2;button.position.set(0,.07,.06);panel.add(button);
- const light=new T.PointLight('#8bcfff',.45,5,2);light.position.set(0,2.6,-1.5);root.add(light);
+ const light=new T.PointLight(useR16?'#5ef0ff':'#8bcfff',.45,5,2);light.position.set(0,2.6,-1.5);root.add(light);
+ const cabinR16=attachR16ElevatorCabin(root,{width,height,depth});
  function doors(p){leaves.forEach((leaf,i)=>leaf.position.x=(i===0?-1:1)*(width/4+(width/2+.025)*p));}
  function update(time,state,p){doors(p);const unlocked=state!=='ELEVATOR_LOCKED',travel=state==='ELEVATOR_ASCENDING';padFill.opacity=unlocked?.22:.08;padRim.opacity=unlocked?.8:.20;glow.emissiveIntensity=unlocked?.7:.12;muted.emissiveIntensity=unlocked?.6:.04;light.intensity=unlocked?.85:.35;
  strips.forEach((o,j)=>{o.visible=travel;if(travel)o.position.y=.2+((j*.55-time*1.1)%2.7+2.7)%2.7;});arrows.forEach((a,j)=>{a.material.color.setScalar(travel?.35+.65*Math.max(0,Math.sin(time*4-j)):unlocked?1:.3);});arrived.visible=['ELEVATOR_ARRIVED','ELEVATOR_EXITING','ELEVATOR_COMPLETE'].includes(state);inside.visible=!arrived.visible;title.material.color.setScalar(unlocked?1:.45);
+ if(cabinR16)cabinR16.update(time,state,unlocked);
  }
  return {root,leaves,button,pad,update,doors,width,height,depth};
 }

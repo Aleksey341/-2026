@@ -1,6 +1,7 @@
 import {darkSlide} from 'room-module/src/slide-theme.js';
 import * as T from 'room-module/vendor/three.module.js';
 import {assetURL} from 'room-module/src/assets.js';
+import {attachPortal2027} from './r16-portal-2027.js?v=r16-v2-6';
 // The player remains in the pavilion. The camera can orbit through its glass.
 export async function makeFuture(scene,config){
  const {width:W,depth:D,height:H}=config.room, group=new T.Group();group.position.set(50,0,0);scene.add(group);
@@ -36,6 +37,7 @@ export async function makeFuture(scene,config){
  const front=W/2-1.21;
  const liftAnchor=new T.Group();liftAnchor.position.set(front,0,0);liftAnchor.rotation.y=-Math.PI/2;group.add(liftAnchor);
  const liftBody=liftAnchor; // The old solid block is replaced with the real open cabin.
+ const portal2027=attachPortal2027(group,{width:W,height:H,front});
  const hover=new T.Group();group.add(hover);let hoverTime=0;
  let liftRetracted=false;
  function sealLift(){liftRetracted=true;liftGlass.visible=true;}
@@ -55,7 +57,8 @@ export async function makeFuture(scene,config){
  for(let i=0;i<5;i++){const d=new T.Group();group.add(d);const body=new T.Mesh(new T.SphereGeometry(.32,24,16),white);body.scale.set(1.3,.65,.9);d.add(body);const face=new T.Mesh(new T.SphereGeometry(.19,20,12),visor);face.scale.set(1.25,.55,.35);face.position.set(0,.01,.25);d.add(face);for(const x of [-.09,.09]){const eye=new T.Mesh(new T.SphereGeometry(.025,12,8),new T.MeshBasicMaterial({color:'#8ee9e2'}));eye.position.set(x,.025,.315);d.add(eye);}for(const x of [-.48,.48]){const ring=new T.Mesh(new T.TorusGeometry(.2,.04,8,24),white);ring.rotation.x=Math.PI/2;ring.position.x=x;d.add(ring);const prop=new T.Mesh(new T.BoxGeometry(.32,.012,.045),visor);prop.position.x=x;d.add(prop);d.userData.props??=[];d.userData.props.push(prop);}drones.push(d);}
  function update(camera,dt=0){hoverTime+=dt;
  if(activation>=0){activation+=dt;shade.material.opacity=.9*T.MathUtils.smoothstep(activation,0,1.2);const f=T.MathUtils.smoothstep(activation,1.2,2.2);display.material.opacity=f;display.position.y=-(1-f)*.10;ready=activation>=2.2;inspectButton.visible=false;}
- drones.forEach((d,i)=>{const t=hoverTime*.09+i*Math.PI*2/5;const x=Math.cos(t)*(W/2+3.5),z=Math.sin(t)*(D/2+4);d.position.set(x,2.4+Math.sin(hoverTime*.5+i)*.6+i*.25,z);d.rotation.y=Math.atan2(-Math.sin(t),Math.cos(t));d.rotation.z=Math.sin(hoverTime+i)*.035;d.userData.props.forEach(p=>p.rotation.y+=dt*20);});const local=group.worldToLocal(camera.position.clone());panels.forEach(p=>{p.material.opacity=local.distanceTo(p.position)<2?.025:.085;});}
- function reset(){activation=-1;ready=false;shade.material.opacity=0;display.material.opacity=0;inspectButton.visible=false;hoverTime=0;liftRetracted=false;liftGlass.visible=false;liftAnchor.position.y=0;liftAnchor.visible=true;}
- return {reset,sealLift,liftGlass,liftAnchor,group,panel,wallButton,inspectButton,activate,inspectNear,get ready(){return ready;},shade,display,drones,hover,blocked,center:group.position.clone(),width:W,depth:D,height:H,radius:R,bottom,top,panels,update,liftBody};
+ drones.forEach((d,i)=>{const t=hoverTime*.09+i*Math.PI*2/5;const x=Math.cos(t)*(W/2+3.5),z=Math.sin(t)*(D/2+4);d.position.set(x,2.4+Math.sin(hoverTime*.5+i)*.6+i*.25,z);d.rotation.y=Math.atan2(-Math.sin(t),Math.cos(t));d.rotation.z=Math.sin(hoverTime+i)*.035;d.userData.props.forEach(p=>p.rotation.y+=dt*20);});const local=group.worldToLocal(camera.position.clone());panels.forEach(p=>{p.material.opacity=local.distanceTo(p.position)<2?.025:.085;});
+ if(portal2027&&dt>0)portal2027.update(dt);}
+ function reset(){activation=-1;ready=false;shade.material.opacity=0;display.material.opacity=0;inspectButton.visible=false;hoverTime=0;liftRetracted=false;liftGlass.visible=false;liftAnchor.position.y=0;liftAnchor.visible=true;if(portal2027)portal2027.reset();}
+ return {reset,sealLift,liftGlass,liftAnchor,group,panel,wallButton,inspectButton,activate,inspectNear,get ready(){return ready;},shade,display,drones,hover,blocked,center:group.position.clone(),width:W,depth:D,height:H,radius:R,bottom,top,panels,update,liftBody,portal2027};
 }

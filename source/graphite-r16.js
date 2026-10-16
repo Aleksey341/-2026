@@ -9,6 +9,8 @@ import * as T from 'room-module/vendor/three.module.js';
 export function r16Enabled() {
   const cfg = typeof window !== 'undefined' ? window.ROOM_CONFIG : null;
   if (!cfg) return false;
+  // Kill-switch for new decorative effects without removing the build flag.
+  if (cfg.visualEffectsEnabled === false) return false;
   // Accept top-level or reactor-scoped flag (HTML embeds it under reactor).
   return cfg.r16Visuals === true || cfg.reactor?.r16Visuals === true;
 }
