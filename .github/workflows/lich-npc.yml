@@ -1,0 +1,34 @@
+name: Lich NPC prototype checks
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [feature/lich-character-r16]
+permissions:
+  contents: read
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check active modules
+        run: |
+          node --check room-module/src/lich-npc.js
+          node --check room-module/src/game.js
+      - name: Assert NPC hook and no hero replacement
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const s=fs.readFileSync('room-module/src/game.js','utf8');
+          const npc=fs.readFileSync('room-module/src/lich-npc.js','utf8');
+          for(const k of ['createLichNPC({hall','lichNPC.near(player.position)','lichNPC.update(dt,player.position','lichNPC.isOpen'])assert.ok(s.includes(k),k);
+          assert.ok(npc.includes("new GLTFLoader().loadAsync(assetURL(modelURL))"));
+          assert.ok(npc.includes("name='NPC_stained_glass_lich'"));
+          assert.ok(s.includes("assets.selectCharacter(next===2?'future':'base')"));
+          console.log('PASS: separate NPC, dialog and preserved player switching');
+          NODE
