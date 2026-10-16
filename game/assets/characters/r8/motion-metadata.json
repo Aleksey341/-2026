@@ -1,0 +1,84 @@
+{
+  "prototype": true,
+  "source": "CMU via Bruce Hahne 2010 BVH conversion",
+  "bindBones": 21,
+  "clips": {
+    "Idle": {
+      "trial": "77_02",
+      "sourceFrames": [
+        300,
+        540
+      ],
+      "fps": 30,
+      "duration": 2.0,
+      "referenceSpeed": 0.20174440077401293,
+      "turnAngleDegrees": -5.304196591014655,
+      "legScale": 5.941140826958802
+    },
+    "Walk": {
+      "trial": "16_15",
+      "sourceFrames": [
+        87,
+        227
+      ],
+      "fps": 30,
+      "duration": 1.1666666666666667,
+      "referenceSpeed": 1.0981089220295797,
+      "turnAngleDegrees": -1.8454980793050986,
+      "legScale": 5.576138596256921
+    },
+    "WalkStart": {
+      "trial": "82_08",
+      "sourceFrames": [
+        1030,
+        1190
+      ],
+      "fps": 30,
+      "duration": 1.3333333333333333,
+      "referenceSpeed": 0.4370717901368425,
+      "turnAngleDegrees": 8.620173096667967,
+      "legScale": 5.850574160796256
+    },
+    "WalkStop": {
+      "trial": "16_33",
+      "sourceFrames": [
+        175,
+        275
+      ],
+      "fps": 30,
+      "duration": 0.8333333333333334,
+      "referenceSpeed": 0.23736793880417534,
+      "turnAngleDegrees": -7.145895940615807,
+      "legScale": 5.576138596256921
+    },
+    "TurnLeft": {
+      "trial": "69_16",
+      "sourceFrames": [
+        10,
+        170
+      ],
+      "fps": 30,
+      "duration": 1.3333333333333333,
+      "referenceSpeed": 0.18010669908298482,
+      "turnAngleDegrees": 68.49231668131473,
+      "legScale": 5.475364837992586
+    },
+    "TurnRight": {
+      "trial": "69_18",
+      "sourceFrames": [
+        110,
+        320
+      ],
+      "fps": 30,
+      "duration": 1.7666666666666666,
+      "referenceSpeed": 0.11758121329580927,
+      "turnAngleDegrees": -86.90805988400247,
+      "legScale": 5.475364837992586
+    }
+  },
+  "limitations": [
+    "No texture/UV",
+    "Grouped hands without individual finger bones",
+    "VR/interaction gestures are not supplied"
+  ]
+}
