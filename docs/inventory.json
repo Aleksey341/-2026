@@ -1,0 +1,16 @@
+﻿{
+  "sha": "fe88fa13f678e913d80a6d3e2b2df030ef5d65af",
+  "branch": "feature/hyperframes-r16",
+  "threejs": "r180",
+  "entry": "START-HERE-R15.html → importmap → room-module/src/*.js",
+  "showcases": [
+    {"i":0,"name":"Быстрый найм","color":"#ff792d","pos":[-6,0,-6.4],"geometry":"Cylinder showcase","storyCube":false},
+    {"i":1,"name":"Удержание","color":"#a775ff","pos":[-3.5,0,-10],"geometry":"Cylinder showcase","storyCube":false},
+    {"i":2,"name":"Человекоцентричность","color":"#43d9a3","pos":[3.5,0,-10],"geometry":"Cylinder showcase","storyCube":false},
+    {"i":3,"name":"Эффективность","color":"#35b9ff","pos":[6,0,-6.4],"geometry":"Cylinder showcase","storyCube":true,"cube":{"BoxGeometry":[0.22,0.22,0.22],"local":[0,1.2,0.08],"worldApprox":[5.957,1.2,-6.333]}}
+  ],
+  "reactorTitle":"Ростелеком",
+  "labelTech":"scrollingLabel CylinderGeometry + UV offset",
+  "trimMaterial":"cubeTrim MeshStandardMaterial #30343b metalness.55 roughness.42",
+  "awaitingUserConfirmation": true
+}

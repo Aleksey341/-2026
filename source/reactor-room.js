@@ -1,6 +1,7 @@
 import * as T from 'room-module/vendor/three.module.js';
 import {assetURL} from 'room-module/src/assets.js';
 import {plate,showcase,markProject,animateShowcase,energyReactor,energyPipe,shutter} from 'room-module/src/retro.js';
+import {r16Enabled,restyleShowcaseTrims} from './graphite-r16.js';
 
 export async function makeReactorRoom(scene,config){
  const {width:W,depth:D,height:H,centerZ:Z,themes}=config;
@@ -44,7 +45,7 @@ export async function makeReactorRoom(scene,config){
  wallArt(textures.sideWall,gateWidth,H-gateHeight,W/2-.135,(H+gateHeight)/2,gateZ,-Math.PI/2,.4,.6,.88,1);
  const reactor=energyReactor(themes.map(t=>t.color));reactor.g.position.set(0,0,Z);group.add(reactor.g);
  const positions=[[-6,Z-1.4],[-3.5,Z-5],[3.5,Z-5],[6,Z-1.4]],pods=[],pipes=[],done=new Set(),projects=themes.map(()=>new Set());
- positions.forEach(([x,z],i)=>{const p=showcase(i,themes[i]);p.g.position.set(x,0,z);p.g.rotation.y=Math.atan2(-x,Z+8-z);group.add(p.g);pods.push(p);const base=p.g.children.find(o=>o.geometry?.type==='CylinderGeometry'&&Math.abs(o.position.y-.34)<.01);if(base&&textures.base){const m=base.material.clone();m.color.set('#ffffff');m.map=textures.base;m.metalness=.3;m.roughness=.65;base.material=[m,base.material,base.material];}const pipe=energyPipe(new T.Vector3(x,.14,z),new T.Vector3(0,.14,Z),themes[i].color);pipes.push(pipe);group.add(pipe.g);});
+ positions.forEach(([x,z],i)=>{const p=showcase(i,themes[i]);p.g.position.set(x,0,z);p.g.rotation.y=Math.atan2(-x,Z+8-z);group.add(p.g);pods.push(p);const base=p.g.children.find(o=>o.geometry?.type==='CylinderGeometry'&&Math.abs(o.position.y-.34)<.01);if(base&&textures.base&&!r16Enabled()){const m=base.material.clone();m.color.set('#ffffff');m.map=textures.base;m.metalness=.3;m.roughness=.65;base.material=[m,base.material,base.material];}if(r16Enabled())restyleShowcaseTrims(p,themes[i].color);const pipe=energyPipe(new T.Vector3(x,.14,z),new T.Vector3(0,.14,Z),themes[i].color);pipes.push(pipe);group.add(pipe.g);});
  gate.behind.material=new T.MeshStandardMaterial({color:'#9c91a6',roughness:.45,metalness:.5});
  const liftSign=plate('ЛИФТ / ОФИС БУДУЩЕГО',3.1,.43);liftSign.position.set(0,3.48,.15);gate.g.add(liftSign);
 

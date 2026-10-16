@@ -6,6 +6,7 @@ import {makeReactorRoom} from 'room-module/src/reactor-room.js';
 import {makeTelevision} from 'room-module/src/television.js';
 import {energyReactor} from 'room-module/src/retro.js';
 import {makeFuture} from 'room-module/src/future.js';
+import {applyR16Environment} from './graphite-r16.js';
 import * as T from 'room-module/vendor/three.module.js';
 import {AssetSystem, readConfig, assetURL} from 'room-module/src/assets.js';
 const CONFIG=await readConfig();
@@ -110,7 +111,7 @@ const originalWall=await new T.TextureLoader().loadAsync(assetURL(CONFIG.walls.f
 for(const [u0,u1,v0,v1] of [[482/2048,825/2048,132/832,709/832],[1218/2048,1572/2048,133/832,710/832]]){const original=originalWall.clone();original.repeat.set(u1-u0,v1-v0);original.offset.set(u0,1-v1);original.needsUpdate=true;const p=new T.Mesh(new T.PlaneGeometry(W*(u1-u0),H*(v1-v0)),new T.MeshBasicMaterial({map:original}));p.position.set(W*(.5-(u0+u1)/2),H*(1-(v0+v1)/2),D/2-.035);p.rotation.y=Math.PI;p.name='interactive-poster';p.userData.original=original;world.add(p);posterHits.push(p);}
 
 const future=await makeFuture(scene,CONFIG,doorZ,doorWidth);future.group.visible=false;future.panel.visible=true;
-const hall=await makeReactorRoom(scene,CONFIG.reactor),tv=await makeTelevision(world,CONFIG);let roomIndex=0,uiOpen=false,selectedPod=null;
+const hall=await makeReactorRoom(scene,CONFIG.reactor),tv=await makeTelevision(world,CONFIG);applyR16Environment(scene,renderer);let roomIndex=0,uiOpen=false,selectedPod=null;
 const peek=energyReactor(['#6b7274','#6b7274','#6b7274','#6b7274']);peek.g.position.set(W/2+2,0,doorZ);peek.g.rotation.y=-Math.PI/2;peek.g.scale.setScalar(.85);peek.g.traverse(o=>{if(o.isMesh){o.castShadow=false;const m=o.material.clone();m.color?.set('#7a8589');if(m.emissive)m.emissive.set('#000000');o.material=m;}});world.add(peek.g);const previewBackdrop=new T.Mesh(new T.PlaneGeometry(5,H),new T.MeshBasicMaterial({color:'#24363a'}));previewBackdrop.position.set(W/2+3.9,H/2,doorZ);previewBackdrop.rotation.y=-Math.PI/2;world.add(previewBackdrop);
 const spawn=CONFIG.character.spawn;player.position.fromArray(spawn);
 let state='worn',yaw=0,pitch=.32,dist=3.45,phase=0,anim=0,wearProgress=0,paused=true,drag=false,lastX=0,lastY=0;const keys=new Set();const action=$('action'),mission=$('mission'),badge=$('badge');mission.textContent='Подойдите к выходу и нажмите «Войти».';badge.textContent='Проход открыт';

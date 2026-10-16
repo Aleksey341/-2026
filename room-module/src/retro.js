@@ -1,4 +1,14 @@
 import * as T from 'room-module/vendor/three.module.js';
+import {
+  r16Enabled,
+  createGraphiteMaterial,
+  createGraphiteBandMaterial,
+  createScrollingLabel,
+  scrollTitle as scrollTitleR16,
+  tag,
+  attachShowcaseRimLight,
+  own,
+} from './graphite-r16.js';
 
 const metal=new T.MeshPhysicalMaterial({color:'#aab1b0',metalness:.8,roughness:.32});
 const brass=new T.MeshPhysicalMaterial({color:'#a58b54',metalness:.78,roughness:.33});
@@ -28,15 +38,21 @@ export function curvedLabel(text,r,h,y,color,arc=2.5){
 }
 // A seamless text ribbon around the full perimeter; only UV offset changes per frame.
 export function scrollingLabel(text,r,h,y,color){
- const c=document.createElement('canvas'),ctx=c.getContext('2d');ctx.font='600 125px Arial';
- c.width=Math.ceil(Math.max(512,ctx.measureText(text).width+220));c.height=256;
- ctx.font='600 125px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.fillText(text,c.width/2,128);
- const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.wrapS=T.RepeatWrapping;
- map.repeat.x=2*Math.PI/2.5;
- const label=new T.Mesh(new T.CylinderGeometry(r,r,h,128,1,true),new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));
- label.position.y=y;label.name='scrolling-title';return label;
+  if(r16Enabled()) return createScrollingLabel(text,r,h,y,color);
+  const c=document.createElement('canvas'),ctx=c.getContext('2d');ctx.font='600 125px Arial';
+  c.width=Math.ceil(Math.max(512,ctx.measureText(text).width+220));c.height=256;
+  ctx.font='600 125px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.fillText(text,c.width/2,128);
+  const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.wrapS=T.RepeatWrapping;
+  map.repeat.x=2*Math.PI/2.5;
+  const label=new T.Mesh(new T.CylinderGeometry(r,r,h,128,1,true),new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));
+  label.position.y=y;label.name='scrolling-title';return label;
 }
-function scrollTitle(label,dt){label.material.map.offset.x=(label.material.map.offset.x+Math.max(0,dt)*.055)%1;}
+function scrollTitle(label,dt){
+  if(r16Enabled()) return scrollTitleR16(label,dt);
+  if(!label?.material?.map) return;
+  label.material.map.offset.x=(label.material.map.offset.x+Math.max(0,dt)*.055)%1;
+}
+/** Shared R15 trim — DO NOT mutate. R16 uses local createGraphiteMaterial clones. */
 const cubeTrim=new T.MeshStandardMaterial({color:'#30343b',roughness:.42,metalness:.55});
 
 export function vrHeadset(){
@@ -71,12 +87,20 @@ function robot(parent,x,z,rotation=0){
 
 export function showcase(i,theme){
   const g=new T.Group();g.name='showcase-'+i;
-  cylinder(g,1.4,.18,cubeTrim,0,.09,0);cylinder(g,1.3,.35,cubeTrim,0,.34,0);
-  cylinder(g,1.24,.055,cubeTrim,0,.54,0);cylinder(g,1.22,1.6,glass,0,1.36,0);
-  cylinder(g,1.28,.08,cubeTrim,0,2.19,0);cylinder(g,1.3,.34,cubeTrim,0,2.39,0);
-  for(const x of[-1.13,1.13])cylinder(g,.029,1.62,cubeTrim,x,1.36,0);
+  const useR16=r16Enabled();
+  const trim=useR16?own(createGraphiteMaterial(theme.color)):cubeTrim;
+  const band=useR16?own(createGraphiteBandMaterial(theme.color)):cubeTrim;
+  const glassMat=useR16?own(new T.MeshPhysicalMaterial({color:new T.Color(theme.color).lerp(new T.Color('#d7e6df'),.72),transparent:true,opacity:.14,roughness:.06,metalness:.12,depthWrite:false,emissive:theme.color,emissiveIntensity:.03})):glass;
+  tag(cylinder(g,1.4,.18,trim,0,.09,0),useR16?'showcase-trim':undefined);
+  tag(cylinder(g,1.3,.35,trim,0,.34,0),useR16?'showcase-trim':undefined);
+  tag(cylinder(g,1.24,.055,band,0,.54,0),useR16?'showcase-band':undefined);
+  cylinder(g,1.22,1.6,glassMat,0,1.36,0);
+  tag(cylinder(g,1.28,.08,band,0,2.19,0),useR16?'showcase-band':undefined);
+  tag(cylinder(g,1.3,.34,band,0,2.39,0),useR16?'showcase-band':undefined);
+  for(const x of[-1.13,1.13])tag(cylinder(g,.029,1.62,trim,x,1.36,0),useR16?'showcase-trim':undefined);
   const title=scrollingLabel(theme.name,1.306,.27,2.39,theme.color);g.add(title);
   const statusMat=activeMaterial('#182c2e'),ring=mesh(g,new T.TorusGeometry(1.24,.022,10,80),statusMat,0,.56,0);ring.rotation.x=Math.PI/2;
+  if(useR16){ring.material.emissive.set(theme.color);ring.material.emissiveIntensity=.7;attachShowcaseRimLight(g,theme.color);}
   const robots=[robot(g,-.65,0,Math.PI/2-.25),robot(g,.65,0,-Math.PI/2+.25)];
   const moving=[];
   const story=createStory(g,i,theme.color);
@@ -184,15 +208,26 @@ export function animateShowcase(p,dt,time,color){
 
 export function energyReactor(colors){
   const g=new T.Group(),fills=[];
-  cylinder(g,1.65,.25,cubeTrim,0,.125,0);cylinder(g,1.51,.3,cubeTrim,0,.4,0);cylinder(g,1.46,.07,cubeTrim,0,.59,0);
-  cylinder(g,1.23,2.65,glass,0,1.96,0);cylinder(g,1.47,.08,cubeTrim,0,3.34,0);cylinder(g,1.52,.34,cubeTrim,0,3.55,0);
+  const useR16=r16Enabled();
+  // Decorative housing only — flask glass / fills / flask end-caps stay on original materials.
+  const body=useR16?own(createGraphiteMaterial('#6ec8ff',{emissiveIntensity:.1,color:0x454e5c})):cubeTrim;
+  const crown=useR16?own(createGraphiteBandMaterial('#6ec8ff')):cubeTrim;
+  tag(cylinder(g,1.65,.25,body,0,.125,0),useR16?'reactor-trim':undefined);
+  tag(cylinder(g,1.51,.3,body,0,.4,0),useR16?'reactor-trim':undefined);
+  tag(cylinder(g,1.46,.07,crown,0,.59,0),useR16?'reactor-band':undefined);
+  cylinder(g,1.23,2.65,glass,0,1.96,0);
+  tag(cylinder(g,1.47,.08,crown,0,3.34,0),useR16?'reactor-band':undefined);
+  tag(cylinder(g,1.52,.34,crown,0,3.55,0),useR16?'reactor-band':undefined);
   for(let i=0;i<4;i++){
     const a=Math.PI/4+i*Math.PI/2,x=Math.cos(a)*.62,z=Math.sin(a)*.62;
     cylinder(g,.205,2.3,glass,x,1.89,z);cylinder(g,.23,.075,cubeTrim,x,.7,z);cylinder(g,.23,.075,cubeTrim,x,3.05,z);
     const fill=cylinder(g,.165,2.25,activeMaterial(colors[i]),x,.76,z);fill.material.emissiveIntensity=2;fill.scale.y=.001;fills.push(fill);
   }
   const core=mesh(g,new T.TorusGeometry(.27,.05,16,48),brass,0,1.9,0);
-  const title=scrollingLabel('Ростелеком',1.526,.27,3.55,'#ffffff');g.add(title);
+  const title=scrollingLabel('Ростелеком',1.526,.27,3.55,useR16?'#dcefff':'#ffffff');g.add(title);
+  if(useR16){
+    const halo=new T.PointLight('#5ab0ff',.55,8,2);halo.position.set(0,2.4,0);halo.castShadow=false;halo.userData.r16='reactor-halo';g.add(halo);
+  }
   return {g,fills,core,title,update(dt){scrollTitle(title,dt);},reset(){title.material.map.offset.x=0;}};
 }
 
