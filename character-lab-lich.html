@@ -61,5 +61,17 @@ $('model').addEventListener('change',async e=>{
   $('status').textContent='GLB загружен. Осмотри лицо, корону, пальцы, плащ, посох и анимации.';
  }catch(err){console.error(err);$('status').textContent='Ошибка GLB: '+(err?.message||String(err));$('report').textContent='Не изменяй исходный файл. Проверь валидность glTF/GLB и внешние ресурсы.'}
 });
+// Automatically load the checked-in GLB when present; file picker still works offline.
+(async()=>{
+ try{
+  const url='./assets/characters/stained-glass-lich/lich_kp13_animated_npc.glb';
+  const res=await fetch(url,{cache:'no-store'});if(!res.ok)return;
+  const buffer=await res.arrayBuffer();
+  const data=new DataTransfer();
+  data.items.add(new File([buffer],'lich_kp13_animated_npc.glb',{type:'model/gltf-binary'}));
+  $('model').files=data.files;
+  $('model').dispatchEvent(new Event('change',{bubbles:true}));
+ }catch(err){console.info('[LICH] Auto-load not available:',String(err))}
+})();
 function frame(now){requestAnimationFrame(frame);const dt=Math.min(.04,Math.max(0,(now-elapsed)/1000));elapsed=now;if(mixer&&running)mixer.update(dt*Number($('speed').value));renderer.render(scene,camera)}requestAnimationFrame(frame);
 </script></body></html>
