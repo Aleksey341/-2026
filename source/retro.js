@@ -9,7 +9,6 @@ import {
   attachShowcaseRimLight,
   own,
 } from './graphite-r16.js';
-import {attachReactorSphere} from './r16-reactor-core.js?v=r16-v2-5';
 
 const metal=new T.MeshPhysicalMaterial({color:'#aab1b0',metalness:.8,roughness:.32});
 const brass=new T.MeshPhysicalMaterial({color:'#a58b54',metalness:.78,roughness:.33});
@@ -216,26 +215,18 @@ export function energyReactor(colors){
     cylinder(g,.205,2.3,shellGlass,x,1.89,z);cylinder(g,.23,.075,useR16?body:cubeTrim,x,.7,z);cylinder(g,.23,.075,useR16?body:cubeTrim,x,3.05,z);
     const fill=cylinder(g,.165,2.25,activeMaterial(colors[i]),x,.76,z);fill.material.emissiveIntensity=2;fill.scale.y=.001;fills.push(fill);
   }
-  // Legacy brass torus kept for R15; R16 swaps in spherical core (same `.rotation` API).
-  let core=mesh(g,new T.TorusGeometry(.27,.05,16,48),brass,0,1.9,0);
-  let sphereApi=null;
-  if(useR16){
-    core.visible=false;
-    sphereApi=attachReactorSphere(g,{y:1.9,radius:.62});
-    if(sphereApi) core=sphereApi;
-  }
+  // Brass torus core (spherical R16 core is local-only until CP1 approved).
+  const core=mesh(g,new T.TorusGeometry(.27,.05,16,48),brass,0,1.9,0);
   const title=scrollingLabel('Ростелеком',1.526,.27,3.55,useR16?'#c8fff6':'#ffffff');g.add(title);
   if(useR16){
     const halo=new T.PointLight('#00e8d8',.7,8,2);halo.position.set(0,2.5,0);halo.castShadow=false;halo.userData.r16='reactor-halo';g.add(halo);
   }
-  return {g,fills,core,title,sphere:sphereApi,
+  return {g,fills,core,title,sphere:null,
     update(dt){
       scrollTitle(title,dt);
-      if(sphereApi) sphereApi.update(dt,fills.map(f=>f.scale.y));
     },
     reset(){
       title.material.map.offset.x=0;
-      if(sphereApi) sphereApi.reset();
     }};
 }
 
