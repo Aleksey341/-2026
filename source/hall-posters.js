@@ -36,8 +36,9 @@ function makeFrameMaterials() {
 function framedPoster(tex, mats) {
   const img = tex.image;
   const aspect = (img?.width || 2) / (img?.height || 3);
-  const maxH = 1.72;
-  const maxW = 1.18;
+  // +60% vs first gallery size (1.72 / 1.18)
+  const maxH = 1.72 * 1.6;
+  const maxW = 1.18 * 1.6;
   let h = maxH;
   let w = h * aspect;
   if (w > maxW) {
@@ -111,21 +112,26 @@ function framedPoster(tex, mats) {
 }
 
 /**
- * Hang five matching framed posters on hall walls (left / back flanks / right).
+ * Hang five matching framed posters:
+ * — opposite the lift (left wall, facing +X)
+ * — to the left of the lift when facing it (front wall, toward the lift corner)
  */
-export async function hangHallPosters(group, { width: W, depth: D, height: H, centerZ: Z }) {
+export async function hangHallPosters(group, { width: W, depth: D, height: H, centerZ: Z, gateZ }) {
   const mats = makeFrameMaterials();
   const loader = new T.TextureLoader();
-  const mw = Math.min(W, H * 3);
   const wall = 0.17;
-  const y = Math.min(2.55, H * 0.52);
+  const liftZ = gateZ ?? Z + 3;
+  // Tall frames: keep clear of floor/ceiling
+  const y = Math.min(2.7, H * 0.55);
 
   const placements = [
-    { x: -W / 2 + wall, y, z: Z - 6.4, ry: Math.PI / 2 }, // left wall, rear
-    { x: -W / 2 + wall, y, z: Z + 1.2, ry: Math.PI / 2 }, // left wall, front
-    { x: -(mw / 2 + 1.55), y, z: Z - D / 2 + wall, ry: 0 }, // back left of map
-    { x: mw / 2 + 1.55, y, z: Z - D / 2 + wall, ry: 0 }, // back right of map
-    { x: W / 2 - wall, y, z: Z - 6.8, ry: -Math.PI / 2 }, // right wall, toward rear
+    // Opposite the elevator — left wall, aligned with lift
+    { x: -W / 2 + wall, y, z: liftZ - 3.4, ry: Math.PI / 2 },
+    { x: -W / 2 + wall, y, z: liftZ, ry: Math.PI / 2 },
+    { x: -W / 2 + wall, y, z: liftZ + 3.4, ry: Math.PI / 2 },
+    // Left of the elevator (facing the lift) — front wall near right / lift corner
+    { x: W / 2 - 5.2, y, z: Z + D / 2 - wall, ry: Math.PI },
+    { x: W / 2 - 2.4, y, z: Z + D / 2 - wall, ry: Math.PI },
   ];
 
   const gallery = new T.Group();
