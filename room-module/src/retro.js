@@ -37,21 +37,12 @@ export function curvedLabel(text,r,h,y,color,arc=2.5){
  const c=document.createElement('canvas');c.width=2048;c.height=256;const x=c.getContext('2d');x.textAlign='center';x.textBaseline='middle';x.font='600 125px Arial';x.fillStyle=color;x.shadowColor=color;x.shadowBlur=10;x.fillText(text,1024,128,1950);const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;
  const m=new T.Mesh(new T.CylinderGeometry(r,r,h,100,1,true,-arc/2,arc),new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));m.position.y=y;return m;
 }
-// A seamless text ribbon around the full perimeter; only UV offset changes per frame.
+// Same smooth marquee as R16 (integer tiles) — used by R15 and R16.
 export function scrollingLabel(text,r,h,y,color){
-  if(r16Enabled()) return createScrollingLabel(text,r,h,y,color);
-  const c=document.createElement('canvas'),ctx=c.getContext('2d');ctx.font='600 125px Arial';
-  c.width=Math.ceil(Math.max(512,ctx.measureText(text).width+220));c.height=256;
-  ctx.font='600 125px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.fillText(text,c.width/2,128);
-  const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.wrapS=T.RepeatWrapping;
-  map.repeat.x=2*Math.PI/2.5;
-  const label=new T.Mesh(new T.CylinderGeometry(r,r,h,128,1,true),new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));
-  label.position.y=y;label.name='scrolling-title';return label;
+  return createScrollingLabel(text,r,h,y,color);
 }
 function scrollTitle(label,dt){
-  if(r16Enabled()) return scrollTitleR16(label,dt);
-  if(!label?.material?.map) return;
-  label.material.map.offset.x=(label.material.map.offset.x+Math.max(0,dt)*.055)%1;
+  return scrollTitleR16(label,dt);
 }
 /** Shared R15 trim — DO NOT mutate. R16 uses local createGraphiteMaterial clones. */
 const cubeTrim=new T.MeshStandardMaterial({color:'#30343b',roughness:.42,metalness:.55});
