@@ -125,10 +125,10 @@ export async function hangHallPosters(group, { width: W, depth: D, height: H, ce
   const y = Math.min(2.7, H * 0.55);
 
   const placements = [
-    // Opposite the elevator — left wall, aligned with lift
+    // Opposite the elevator — left wall; +Z is left when facing the wall, so "правее" = lower z
     { x: -W / 2 + wall, y, z: liftZ - 3.4, ry: Math.PI / 2 },
-    { x: -W / 2 + wall, y, z: liftZ, ry: Math.PI / 2 },
-    { x: -W / 2 + wall, y, z: liftZ + 3.4, ry: Math.PI / 2 },
+    { x: -W / 2 + wall, y, z: liftZ - 0.6, ry: Math.PI / 2 },
+    { x: -W / 2 + wall, y, z: liftZ + 2.2, ry: Math.PI / 2 },
     // Left of the elevator (facing the lift) — front wall, clear of wall trim / lift corner
     { x: W / 2 - 3.3, y, z: Z + D / 2 - wall, ry: Math.PI },
     { x: W / 2 - 1.05, y, z: Z + D / 2 - wall, ry: Math.PI },
