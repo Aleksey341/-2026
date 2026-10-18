@@ -129,12 +129,12 @@ function updateChapter(){
  $('room-label').textContent=['ПЕРЕГОВОРНАЯ','ЗАЛ АКТИВАЦИИ','ОФИС БУДУЩЕГО'][roomIndex];$('room-number').textContent=['01','02','03'][roomIndex];
  if(roomIndex===0){mission.textContent='Дверь открыта. Подойдите к выходу и нажмите «Войти».';badge.textContent='Проход открыт';}
  if(roomIndex===1){mission.textContent=hall.reactorFilled?'Реактор заполнен. Следуйте к светящемуся кругу перед лифтом.':'Активировано витрин: '+hall.done.size+' / 4. Выберите витрину и изучите её проекты.';badge.textContent='Витрины: '+hall.done.size+' / 4';}
- if(roomIndex===2){mission.textContent=elevator.active?'Поездка в Офис будущего. Дождитесь открытия дверей и нажмите E для выхода.':'Нажмите фиолетовую кнопку на соседней стене. Когда появится слайд, подойдите к нему и нажмите всплывающее действие «Рассмотреть».';badge.textContent='Стеклянный павильон · 12 × 9 м';}
+ if(roomIndex===2){mission.textContent=elevator.active?'Поездка в Офис будущего. Дождитесь открытия дверей и нажмите E для выхода.':future.started?'Подойдите к слайду и нажмите «Рассмотреть».':'Встаньте на круг «Будущее здесь» в центре зала и нажмите E, чтобы запустить презентацию.';badge.textContent='Стеклянный павильон · 12 × 9 м';}
 }
 function act(){
  if(paused||uiOpen)return;if(elevator.awaitingExit){keys.clear();elevator.exit();return;}if(elevator.active)return;
  if(roomIndex===1){if(elevator.state==='ELEVATOR_READY'&&elevator.near(player.position)){keys.clear();elevator.start();updateChapter();return;}const i=hall.nearest(player.position);if(i!==null)openProjects(i);return;}
- if(roomIndex===2){if(future.inspectNear(player.position))showFinal();return;}
+ if(roomIndex===2){if(future.padNear(player.position)){future.activate();updateChapter();return;}if(future.inspectNear(player.position))showFinal();return;}
  if(roomIndex!==0)return;
  if(doorNear()){progress.events.passage=true;progress.events.hall=true;enterRoom(1);return;}
 
@@ -155,7 +155,7 @@ let dragDistance=0;const canvas=$('game');canvas.onpointerdown=e=>{drag=true;las
 const raycaster=new T.Raycaster();canvas.addEventListener('click',e=>{
  if(paused||uiOpen||elevator.active||dragDistance>5)return;
  scene.updateMatrixWorld(true);raycaster.setFromCamera(new T.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2),camera);
- if(roomIndex===2){if(raycaster.intersectObject(future.wallButton,true).length){future.activate();return;}}
+ if(roomIndex===2){if(raycaster.intersectObject(future.floorPad,true).length){future.activate();updateChapter();return;}}
  if(roomIndex===0){const ph=raycaster.intersectObjects(posterHits);if(ph.length){const p=ph[0].object;p.userData.future=!p.userData.future;p.material.map=p.userData.future?robotPoster:p.userData.original;return;}const hits=raycaster.intersectObject(world,true).filter(h=>{for(let p=h.object;p&&p!==world;p=p.parent)if(!p.visible)return false;return true;});const hit=hits[0];if(hit&&(hit.object===tv.hit||hit.object===tv.button)){tv.toggle();return;}}
  if(roomIndex===1){const i=hall.nearest(player.position);if(i!==null&&raycaster.intersectObject(hall.pods[i].g,true).length)openProjects(i);}
 });
@@ -164,7 +164,7 @@ function blocked(x,z){if(roomIndex===1)return hall.blocked(x,z);if(roomIndex===2
 let last=performance.now(),walk=0;const target=new T.Vector3(),desired=new T.Vector3();function frame(now){requestAnimationFrame(frame);const dt=paused?0:T.MathUtils.clamp((now-last)/1000,0,.04);last=now;let moving=false;let dx=0,dz=0;if(!paused&&!uiOpen&&!elevator.active&&state!=='wearing'){const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'));const right=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));dx=right*Math.cos(yaw)-forward*Math.sin(yaw);dz=-right*Math.sin(yaw)-forward*Math.cos(yaw);const len=Math.hypot(dx,dz);if(len){dx/=len;dz/=len;const nx=player.position.x+dx*dt*1.65,nz=player.position.z+dz*dt*1.65;if(!blocked(nx,player.position.z)){player.position.x=nx;moving=true}if(!blocked(player.position.x,nz)){player.position.z=nz;moving=true}const angle=Math.atan2(-dx,-dz);player.rotation.y+=Math.atan2(Math.sin(angle-player.rotation.y),Math.cos(angle-player.rotation.y))*Math.min(1,dt*12)}}
 walk=T.MathUtils.damp(walk,moving?1:0,9,dt);phase+=dt*8;body.position.y=Math.abs(Math.sin(phase))*.016*walk+Math.sin(now*.0016)*.003;legs[0].rotation.x=Math.sin(phase)*.36*walk;legs[1].rotation.x=-Math.sin(phase)*.36*walk;arms[0].rotation.x=-Math.sin(phase)*.29*walk;arms[1].rotation.x=Math.sin(phase)*.29*walk;
 
-if(state==='worn'){door.position.z=T.MathUtils.damp(door.position.z,doorZ+doorWidth+.03,2,dt)}else{door.position.z=T.MathUtils.damp(door.position.z,doorZ,3,dt)}let actionText='';if(roomIndex===0){tv.update(dt);if(doorNear())actionText='Войти';}else if(roomIndex===1){if(elevator.state==='ELEVATOR_READY'&&elevator.near(player.position))actionText='';else{const i=hall.nearest(player.position);if(i!==null)actionText='Рассмотреть: '+hall.themes[i].name;}}else if(roomIndex===2&&future.inspectNear(player.position))actionText='Рассмотреть';if(elevator.awaitingExit)actionText='Выйти в Офис будущего';action.hidden=paused||uiOpen||(elevator.active&&!elevator.awaitingExit)||!actionText;action.innerHTML='<kbd>E</kbd> '+actionText;$('step1').parentElement.hidden=true;
+if(state==='worn'){door.position.z=T.MathUtils.damp(door.position.z,doorZ+doorWidth+.03,2,dt)}else{door.position.z=T.MathUtils.damp(door.position.z,doorZ,3,dt)}let actionText='';if(roomIndex===0){tv.update(dt);if(doorNear())actionText='Войти';}else if(roomIndex===1){if(elevator.state==='ELEVATOR_READY'&&elevator.near(player.position))actionText='';else{const i=hall.nearest(player.position);if(i!==null)actionText='Рассмотреть: '+hall.themes[i].name;}}else if(roomIndex===2){if(future.padNear(player.position))actionText='Будущее здесь';else if(future.inspectNear(player.position))actionText='Рассмотреть';}if(elevator.awaitingExit)actionText='Выйти в Офис будущего';action.hidden=paused||uiOpen||(elevator.active&&!elevator.awaitingExit)||!actionText;action.innerHTML='<kbd>E</kbd> '+actionText;$('step1').parentElement.hidden=true;
 // Orbit follows the heroine; camera stays within the finished room.
 if(roomIndex===1){const before=String(hall.reactorFilled)+hall.done.size;hall.update(dt,now/1000,player.position);if(String(hall.reactorFilled)+hall.done.size!==before)updateChapter();}
 const elevatorBefore=elevator.state;elevator.update(dt);if(elevator.state!==elevatorBefore)updateChapter();
