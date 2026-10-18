@@ -117,14 +117,14 @@ export function createScrollingLabel(text, r, h, y, color) {
   label.name = 'scrolling-title';
   label.userData.r16 = 'marquee';
   // Visual speed ~ independent of copy count
-  // Slow enough to read full words, still visibly moving
-  label.userData.scrollSpeed = 0.036 / copies;
+  // Readable full words, slightly quicker scroll
+  label.userData.scrollSpeed = 0.058 / copies;
   return label;
 }
 
 export function scrollTitle(label, dt) {
   if (!label?.material?.map) return;
-  const speed = label.userData.scrollSpeed ?? 0.036;
+  const speed = label.userData.scrollSpeed ?? 0.058;
   const step = Math.max(0, Math.min(dt, 0.05)) * speed;
   label.material.map.offset.x = (label.material.map.offset.x + step) % 1;
 }
