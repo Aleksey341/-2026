@@ -129,9 +129,9 @@ export async function hangHallPosters(group, { width: W, depth: D, height: H, ce
     { x: -W / 2 + wall, y, z: liftZ - 3.4, ry: Math.PI / 2 },
     { x: -W / 2 + wall, y, z: liftZ, ry: Math.PI / 2 },
     { x: -W / 2 + wall, y, z: liftZ + 3.4, ry: Math.PI / 2 },
-    // Left of the elevator (facing the lift) — front wall near right / lift corner
-    { x: W / 2 - 5.2, y, z: Z + D / 2 - wall, ry: Math.PI },
-    { x: W / 2 - 2.4, y, z: Z + D / 2 - wall, ry: Math.PI },
+    // Left of the elevator (facing the lift) — front wall, clear of wall trim / lift corner
+    { x: W / 2 - 3.3, y, z: Z + D / 2 - wall, ry: Math.PI },
+    { x: W / 2 - 1.05, y, z: Z + D / 2 - wall, ry: Math.PI },
   ];
 
   const gallery = new T.Group();

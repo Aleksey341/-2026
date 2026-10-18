@@ -2,7 +2,7 @@ import * as T from 'room-module/vendor/three.module.js';
 import {assetURL} from 'room-module/src/assets.js';
 import {plate,showcase,markProject,animateShowcase,energyReactor,energyPipe,shutter} from 'room-module/src/retro.js';
 import {r16Enabled,restyleShowcaseTrims} from './graphite-r16.js';
-import {hangHallPosters} from './hall-posters.js?v=hall-posters-2';
+import {hangHallPosters} from './hall-posters.js?v=hall-posters-3';
 
 export async function makeReactorRoom(scene,config){
  const {width:W,depth:D,height:H,centerZ:Z,themes}=config;
