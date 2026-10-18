@@ -51,22 +51,28 @@ export async function makeFuture(scene,config){
  const finalTexture=await new T.TextureLoader().loadAsync(assetURL(config.future.finalSlide));finalTexture.colorSpace=T.SRGBColorSpace;
  const display=new T.Mesh(new T.PlaneGeometry(Math.min(D-.06,(H-.06)*16/9),Math.min(H-.06,(D-.06)*9/16)),new T.MeshBasicMaterial({map:finalTexture,transparent:true,opacity:0,side:T.DoubleSide,depthWrite:false,toneMapped:false}));display.position.set(0,0,.025);display.renderOrder=7;panel.add(display);
  function label(text,w,h){const c=document.createElement('canvas');c.width=768;c.height=192;const ctx=c.getContext('2d');ctx.fillStyle='#7700ff';ctx.fillRect(0,0,768,192);ctx.fillStyle='white';ctx.font='bold 66px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,384,96);const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:t,side:T.DoubleSide,transparent:true}));m.renderOrder=9;return m;}
- // Floor trigger replaces the wall switch: stand on the circle / press E / click.
- const floorPad=new T.Group();floorPad.name='future-floor-pad';floorPad.position.set(0,.018,0);group.add(floorPad);
- const padFill=new T.MeshBasicMaterial({color:'#dfe6ff',transparent:true,opacity:.42,side:T.DoubleSide,depthWrite:false});
- const padRim=new T.MeshBasicMaterial({color:'#5b4db8',transparent:true,opacity:.85,side:T.DoubleSide,depthWrite:false});
- const padDisc=new T.Mesh(new T.CircleGeometry(1.35,72),padFill);padDisc.rotation.x=-Math.PI/2;floorPad.add(padDisc);
- const padRing=new T.Mesh(new T.RingGeometry(1.28,1.48,72),padRim);padRing.rotation.x=-Math.PI/2;padRing.position.y=.004;floorPad.add(padRing);
- const padPlate=new T.Mesh(new T.CircleGeometry(1.12,64),new T.MeshBasicMaterial({color:'#f4f1ea',transparent:true,opacity:.92,side:T.DoubleSide,depthWrite:false}));
- padPlate.rotation.x=-Math.PI/2;padPlate.position.y=.006;padPlate.renderOrder=7;floorPad.add(padPlate);
- const padCanvas=document.createElement('canvas');padCanvas.width=512;padCanvas.height=512;
- const pctx=padCanvas.getContext('2d');pctx.clearRect(0,0,512,512);pctx.textAlign='center';pctx.textBaseline='middle';pctx.font='800 58px Arial';
- function padLine(text,y){pctx.lineWidth=10;pctx.strokeStyle='#ffffff';pctx.strokeText(text,256,y);pctx.fillStyle='#1f1848';pctx.fillText(text,256,y);}
- padLine('Будущее',228);padLine('здесь',296);
- const padTex=new T.CanvasTexture(padCanvas);padTex.colorSpace=T.SRGBColorSpace;padTex.anisotropy=4;
- // Flat on floor; +PI flips the UV so the line reads upright from the lift / room approach.
- const padLabel=new T.Mesh(new T.CircleGeometry(1.15,64),new T.MeshBasicMaterial({map:padTex,transparent:true,opacity:1,depthWrite:false,side:T.DoubleSide}));
- padLabel.rotation.x=-Math.PI/2;padLabel.rotation.z=Math.PI;padLabel.position.y=.01;padLabel.renderOrder=8;floorPad.add(padLabel);
+ // Neon floor button: recessed well + glowing lip; caption rides the rim.
+ const floorPad=new T.Group();floorPad.name='future-floor-pad';floorPad.position.set(0,.02,0);group.add(floorPad);
+ const padWell=new T.Mesh(new T.CylinderGeometry(1.52,1.58,.07,64),new T.MeshStandardMaterial({color:'#141722',roughness:.72,metalness:.35}));padWell.position.y=-.02;floorPad.add(padWell);
+ const padFaceMat=new T.MeshStandardMaterial({color:'#243049',emissive:'#243a6a',emissiveIntensity:.45,roughness:.38,metalness:.55});
+ const padFace=new T.Mesh(new T.CylinderGeometry(1.22,1.24,.045,64),padFaceMat);padFace.position.y=.01;floorPad.add(padFace);
+ const padNeonMat=new T.MeshStandardMaterial({color:'#9eb6ff',emissive:'#6f8cff',emissiveIntensity:2.4,roughness:.22,metalness:.55});
+ const padNeon=new T.Mesh(new T.TorusGeometry(1.34,.055,14,80),padNeonMat);padNeon.rotation.x=Math.PI/2;padNeon.position.y=.04;floorPad.add(padNeon);
+ const padGlow=new T.Mesh(new T.RingGeometry(1.18,1.62,80),new T.MeshBasicMaterial({color:'#7ea0ff',transparent:true,opacity:.35,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending}));
+ padGlow.rotation.x=-Math.PI/2;padGlow.position.y=.045;padGlow.renderOrder=7;floorPad.add(padGlow);
+ const padInner=new T.Mesh(new T.TorusGeometry(1.18,.018,10,64),new T.MeshStandardMaterial({color:'#c9d6ff',emissive:'#a8bcff',emissiveIntensity:1.6,roughness:.3,metalness:.4}));
+ padInner.rotation.x=Math.PI/2;padInner.position.y=.035;floorPad.add(padInner);
+ function makeRimTextTexture(phrase){
+  const size=1024,c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,size,size);const cx=size/2,cy=size/2,radius=size*.39;
+  const str=(phrase+'  ·  ').repeat(2);ctx.font='800 46px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+  const chars=[...str],space=7;let total=0;const widths=chars.map(ch=>{const w=ctx.measureText(ch).width+space;total+=w;return w;});
+  let angle=-total/(2*radius);
+  for(let i=0;i<chars.length;i++){const w=widths[i],a=angle+w/(2*radius);ctx.save();ctx.translate(cx+Math.cos(a)*radius,cy+Math.sin(a)*radius);ctx.rotate(a+Math.PI/2);ctx.lineWidth=8;ctx.strokeStyle='rgba(20,16,48,.85)';ctx.strokeText(chars[i],0,0);ctx.fillStyle='#f4f7ff';ctx.fillText(chars[i],0,0);ctx.restore();angle+=w/radius;}
+  const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=4;return tex;
+ }
+ const padTextMat=new T.MeshBasicMaterial({map:makeRimTextTexture('Будущее здесь'),transparent:true,opacity:1,depthWrite:false,side:T.DoubleSide});
+ const padText=new T.Mesh(new T.RingGeometry(1.05,1.55,96),padTextMat);padText.rotation.x=-Math.PI/2;padText.position.y=.055;padText.renderOrder=8;floorPad.add(padText);
  const inspectButton=label('Рассмотреть',1.8,.45);inspectButton.position.set(0,-H/2+.26,.08);inspectButton.visible=false;panel.add(inspectButton);
  let activation=-1,ready=false;
  function activate(){if(activation<0)activation=0;}
@@ -79,10 +85,11 @@ export async function makeFuture(scene,config){
  const present=activation<0?0:T.MathUtils.smoothstep(activation,0,1.4);
  floorPanels.children.forEach((o,i)=>o.material.color.copy(floorBaseColors[i]).lerp(floorDarkColor,present));
  floorRails.forEach((o,i)=>o.material.color.copy(floorRailBase[i]).lerp(floorDarkColor,present*.9));
- padFill.opacity=activation<0?.38+.08*Math.sin(hoverTime*2.2):.1;padRim.opacity=activation<0?.8+.12*Math.sin(hoverTime*2.2):.2;padPlate.material.opacity=activation<0?.92:.2;padLabel.material.opacity=activation<0?1:.15;
+ if(activation<0){padText.rotation.z-=dt*.55;const pulse=.55+.45*Math.sin(hoverTime*3.1);padNeonMat.emissiveIntensity=1.9+pulse*.7;padInner.material.emissiveIntensity=1.2+pulse*.5;padGlow.material.opacity=.28+pulse*.14;padFaceMat.emissiveIntensity=.35+pulse*.15;padTextMat.opacity=1;}
+ else{padText.rotation.z-=dt*.15;padNeonMat.emissiveIntensity=.35;padInner.material.emissiveIntensity=.25;padGlow.material.opacity=.08;padFaceMat.emissiveIntensity=.12;padTextMat.opacity=.12;}
  drones.forEach((d,i)=>{const t=hoverTime*.09+i*Math.PI*2/5;const x=Math.cos(t)*(W/2+3.5),z=Math.sin(t)*(D/2+4);d.position.set(x,2.4+Math.sin(hoverTime*.5+i)*.6+i*.25,z);d.rotation.y=Math.atan2(-Math.sin(t),Math.cos(t));d.rotation.z=Math.sin(hoverTime+i)*.035;d.userData.props.forEach(p=>p.rotation.y+=dt*20);});
  const local=group.worldToLocal(camera.position.clone());
  panels.forEach(p=>{const near=local.distanceTo(p.position)<2;const clearOp=near?.025:.085;const tintOp=near?.38:.58;p.material.opacity=T.MathUtils.lerp(clearOp,tintOp,present);p.material.color.copy(glassClear).lerp(glassTint,present);});}
- function reset(){activation=-1;ready=false;shade.material.opacity=0;display.material.opacity=0;inspectButton.visible=false;hoverTime=0;liftRetracted=false;liftGlass.visible=false;liftAnchor.position.y=0;liftAnchor.visible=true;floorPanels.children.forEach((o,i)=>o.material.color.copy(floorBaseColors[i]));floorRails.forEach((o,i)=>o.material.color.copy(floorRailBase[i]));panels.forEach(p=>{p.material.color.copy(glassClear);p.material.opacity=.085;});padFill.opacity=.42;padRim.opacity=.85;padPlate.material.opacity=.92;padLabel.material.opacity=1;}
+ function reset(){activation=-1;ready=false;shade.material.opacity=0;display.material.opacity=0;inspectButton.visible=false;hoverTime=0;liftRetracted=false;liftGlass.visible=false;liftAnchor.position.y=0;liftAnchor.visible=true;floorPanels.children.forEach((o,i)=>o.material.color.copy(floorBaseColors[i]));floorRails.forEach((o,i)=>o.material.color.copy(floorRailBase[i]));panels.forEach(p=>{p.material.color.copy(glassClear);p.material.opacity=.085;});padText.rotation.z=0;padNeonMat.emissiveIntensity=2.4;padInner.material.emissiveIntensity=1.6;padGlow.material.opacity=.35;padFaceMat.emissiveIntensity=.45;padTextMat.opacity=1;}
  return {reset,sealLift,liftGlass,liftAnchor,group,panel,floorPad,padNear,inspectButton,activate,inspectNear,get ready(){return ready;},get started(){return activation>=0;},shade,display,drones,hover,blocked,center:group.position.clone(),width:W,depth:D,height:H,radius:R,bottom,top,panels,update,liftBody};
 }
