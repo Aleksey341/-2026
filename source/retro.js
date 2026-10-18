@@ -9,6 +9,7 @@ import {
   attachShowcaseRimLight,
   own,
 } from './graphite-r16.js';
+import {attachReactorSphere} from './r16-reactor-core.js?v=r16-v2-5';
 
 const metal=new T.MeshPhysicalMaterial({color:'#aab1b0',metalness:.8,roughness:.32});
 const brass=new T.MeshPhysicalMaterial({color:'#a58b54',metalness:.78,roughness:.33});
@@ -36,21 +37,12 @@ export function curvedLabel(text,r,h,y,color,arc=2.5){
  const c=document.createElement('canvas');c.width=2048;c.height=256;const x=c.getContext('2d');x.textAlign='center';x.textBaseline='middle';x.font='600 125px Arial';x.fillStyle=color;x.shadowColor=color;x.shadowBlur=10;x.fillText(text,1024,128,1950);const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;
  const m=new T.Mesh(new T.CylinderGeometry(r,r,h,100,1,true,-arc/2,arc),new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));m.position.y=y;return m;
 }
-// A seamless text ribbon around the full perimeter; only UV offset changes per frame.
+// Same smooth marquee as R16 (integer tiles) — used by R15 and R16.
 export function scrollingLabel(text,r,h,y,color){
-  if(r16Enabled()) return createScrollingLabel(text,r,h,y,color);
-  const c=document.createElement('canvas'),ctx=c.getContext('2d');ctx.font='600 125px Arial';
-  c.width=Math.ceil(Math.max(512,ctx.measureText(text).width+220));c.height=256;
-  ctx.font='600 125px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=color;ctx.fillText(text,c.width/2,128);
-  const map=new T.CanvasTexture(c);map.colorSpace=T.SRGBColorSpace;map.wrapS=T.RepeatWrapping;
-  map.repeat.x=2*Math.PI/2.5;
-  const label=new T.Mesh(new T.CylinderGeometry(r,r,h,128,1,true),new T.MeshBasicMaterial({map,transparent:true,depthWrite:false,toneMapped:false}));
-  label.position.y=y;label.name='scrolling-title';return label;
+  return createScrollingLabel(text,r,h,y,color);
 }
 function scrollTitle(label,dt){
-  if(r16Enabled()) return scrollTitleR16(label,dt);
-  if(!label?.material?.map) return;
-  label.material.map.offset.x=(label.material.map.offset.x+Math.max(0,dt)*.055)%1;
+  return scrollTitleR16(label,dt);
 }
 /** Shared R15 trim — DO NOT mutate. R16 uses local createGraphiteMaterial clones. */
 const cubeTrim=new T.MeshStandardMaterial({color:'#30343b',roughness:.42,metalness:.55});
@@ -209,26 +201,42 @@ export function animateShowcase(p,dt,time,color){
 export function energyReactor(colors){
   const g=new T.Group(),fills=[];
   const useR16=r16Enabled();
-  // Decorative housing only — flask glass / fills / flask end-caps stay on original materials.
-  const body=useR16?own(createGraphiteMaterial('#6ec8ff',{emissiveIntensity:.1,color:0x454e5c})):cubeTrim;
-  const crown=useR16?own(createGraphiteBandMaterial('#6ec8ff')):cubeTrim;
+  // Decorative housing — dark graphite (not teal plastic). Flasks/fills stay functional.
+  const body=useR16?own(createGraphiteMaterial('#445566',{emissiveIntensity:.04,color:0x151a22,metalness:.94,roughness:.3})):cubeTrim;
+  const crown=useR16?own(createGraphiteMaterial('#556677',{emissiveIntensity:.06,color:0x222a35,metalness:.92,roughness:.24,clearcoat:.55})):cubeTrim;
+  const shellGlass=useR16?own(new T.MeshPhysicalMaterial({color:'#a8c0d0',transparent:true,opacity:.06,roughness:.04,metalness:.08,depthWrite:false})):glass;
   tag(cylinder(g,1.65,.25,body,0,.125,0),useR16?'reactor-trim':undefined);
   tag(cylinder(g,1.51,.3,body,0,.4,0),useR16?'reactor-trim':undefined);
   tag(cylinder(g,1.46,.07,crown,0,.59,0),useR16?'reactor-band':undefined);
-  cylinder(g,1.23,2.65,glass,0,1.96,0);
+  cylinder(g,1.23,2.65,shellGlass,0,1.96,0);
   tag(cylinder(g,1.47,.08,crown,0,3.34,0),useR16?'reactor-band':undefined);
   tag(cylinder(g,1.52,.34,crown,0,3.55,0),useR16?'reactor-band':undefined);
   for(let i=0;i<4;i++){
     const a=Math.PI/4+i*Math.PI/2,x=Math.cos(a)*.62,z=Math.sin(a)*.62;
-    cylinder(g,.205,2.3,glass,x,1.89,z);cylinder(g,.23,.075,cubeTrim,x,.7,z);cylinder(g,.23,.075,cubeTrim,x,3.05,z);
+    cylinder(g,.205,2.3,shellGlass,x,1.89,z);cylinder(g,.23,.075,useR16?body:cubeTrim,x,.7,z);cylinder(g,.23,.075,useR16?body:cubeTrim,x,3.05,z);
     const fill=cylinder(g,.165,2.25,activeMaterial(colors[i]),x,.76,z);fill.material.emissiveIntensity=2;fill.scale.y=.001;fills.push(fill);
   }
-  const core=mesh(g,new T.TorusGeometry(.27,.05,16,48),brass,0,1.9,0);
-  const title=scrollingLabel('Ростелеком',1.526,.27,3.55,useR16?'#dcefff':'#ffffff');g.add(title);
+  // Legacy brass torus kept for R15; R16 swaps in spherical core (same `.rotation` API).
+  let core=mesh(g,new T.TorusGeometry(.27,.05,16,48),brass,0,1.9,0);
+  let sphereApi=null;
   if(useR16){
-    const halo=new T.PointLight('#5ab0ff',.55,8,2);halo.position.set(0,2.4,0);halo.castShadow=false;halo.userData.r16='reactor-halo';g.add(halo);
+    core.visible=false;
+    sphereApi=attachReactorSphere(g,{y:1.9,radius:.62});
+    if(sphereApi) core=sphereApi;
   }
-  return {g,fills,core,title,update(dt){scrollTitle(title,dt);},reset(){title.material.map.offset.x=0;}};
+  const title=scrollingLabel('Ростелеком',1.526,.27,3.55,useR16?'#c8fff6':'#ffffff');g.add(title);
+  if(useR16){
+    const halo=new T.PointLight('#00e8d8',.7,8,2);halo.position.set(0,2.5,0);halo.castShadow=false;halo.userData.r16='reactor-halo';g.add(halo);
+  }
+  return {g,fills,core,title,sphere:sphereApi,
+    update(dt){
+      scrollTitle(title,dt);
+      if(sphereApi) sphereApi.update(dt,fills.map(f=>f.scale.y));
+    },
+    reset(){
+      title.material.map.offset.x=0;
+      if(sphereApi) sphereApi.reset();
+    }};
 }
 
 export function energyPipe(start,end,color){

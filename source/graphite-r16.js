@@ -9,6 +9,8 @@ import * as T from 'room-module/vendor/three.module.js';
 export function r16Enabled() {
   const cfg = typeof window !== 'undefined' ? window.ROOM_CONFIG : null;
   if (!cfg) return false;
+  // Kill-switch for new decorative effects without removing the build flag.
+  if (cfg.visualEffectsEnabled === false) return false;
   // Accept top-level or reactor-scoped flag (HTML embeds it under reactor).
   return cfg.r16Visuals === true || cfg.reactor?.r16Visuals === true;
 }
@@ -49,36 +51,45 @@ export function createGraphiteBandMaterial(themeColor = '#5ab0ff') {
 }
 
 /**
- * Seamless cylindrical marquee (R2 lessons: integer tile, soft glow, no hard stripes).
- * Keeps existing API: Mesh with CanvasTexture + UV scroll via scrollTitle.
+ * Seamless cylindrical marquee — integer UV tiles, wide gaps, slow scroll.
+ * Full phrase stays readable; no mid-word stretch from non-integer repeat.
  */
 export function createScrollingLabel(text, r, h, y, color) {
+  const phrase = String(text || '').trim();
   const canvas = document.createElement('canvas');
   const ctx = canvas.getContext('2d');
-  const font = '700 118px Arial,sans-serif';
+  // Hi-DPI canvas → sharper letters on the cylinder
+  const scale = 2;
+  const fontPx = 132;
+  const font = `700 ${fontPx}px Arial, "Segoe UI", sans-serif`;
   ctx.font = font;
-  const metrics = ctx.measureText(text);
-  const textW = Math.ceil(Math.max(metrics.width, 64));
-  const gap = Math.max(96, Math.round(textW * 0.42));
+  const textW = Math.ceil(Math.max(ctx.measureText(phrase).width, 80));
+  // Wide gap so the next copy never crowds the previous word
+  const gap = Math.max(180, Math.round(textW * 0.65));
   const unitW = textW + gap;
-  canvas.width = unitW;
-  canvas.height = 256;
-  ctx.clearRect(0, 0, unitW, 256);
+  const unitH = 288;
+  canvas.width = unitW * scale;
+  canvas.height = unitH * scale;
+  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  ctx.clearRect(0, 0, unitW, unitH);
   ctx.font = font;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'middle';
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
 
-  // Soft theme glow underpass
+  const x = Math.round(gap * 0.28);
+  const cy = unitH / 2;
+
   ctx.shadowColor = color;
-  ctx.shadowBlur = 18;
+  ctx.shadowBlur = 22;
   ctx.fillStyle = color;
-  ctx.fillText(text, gap * 0.35, 128);
+  ctx.fillText(phrase, x, cy);
 
-  // Crisp core (slightly lighter for readability on dark graphite)
   ctx.shadowBlur = 0;
-  const core = new T.Color(color).lerp(new T.Color('#eef4fa'), 0.35);
+  const core = new T.Color(color).lerp(new T.Color('#f4f8fc'), 0.42);
   ctx.fillStyle = `#${core.getHexString()}`;
-  ctx.fillText(text, gap * 0.35, 128);
+  ctx.fillText(phrase, x, cy);
 
   const map = new T.CanvasTexture(canvas);
   map.colorSpace = T.SRGBColorSpace;
@@ -87,9 +98,10 @@ export function createScrollingLabel(text, r, h, y, color) {
   map.minFilter = T.LinearFilter;
   map.magFilter = T.LinearFilter;
   map.generateMipmaps = false;
-  // ~2.4–3.2 readable copies around the cylinder circumference
-  const circ = 2 * Math.PI * r;
-  const copies = Math.max(2, Math.min(4, Math.round(circ / 2.15)));
+  map.anisotropy = 4;
+  // Fewer copies → larger, clearer words around the band
+  const circ = 2 * Math.PI * Math.max(r, 0.4);
+  const copies = Math.max(2, Math.min(3, Math.round(circ / 2.8)));
   map.repeat.set(copies, 1);
   map.needsUpdate = true;
 
@@ -100,17 +112,21 @@ export function createScrollingLabel(text, r, h, y, color) {
     toneMapped: false,
     side: T.FrontSide,
   });
-  const label = new T.Mesh(new T.CylinderGeometry(r, r, h, 128, 1, true), mat);
+  const label = new T.Mesh(new T.CylinderGeometry(r, r, h, 160, 1, true), mat);
   label.position.y = y;
   label.name = 'scrolling-title';
   label.userData.r16 = 'marquee';
+  // Visual speed ~ independent of copy count
+  // Slow enough to read full words, still visibly moving
+  label.userData.scrollSpeed = 0.036 / copies;
   return label;
 }
 
 export function scrollTitle(label, dt) {
   if (!label?.material?.map) return;
-  const speed = label.userData.scrollSpeed ?? 0.048;
-  label.material.map.offset.x = (label.material.map.offset.x + Math.max(0, dt) * speed) % 1;
+  const speed = label.userData.scrollSpeed ?? 0.036;
+  const step = Math.max(0, Math.min(dt, 0.05)) * speed;
+  label.material.map.offset.x = (label.material.map.offset.x + step) % 1;
 }
 
 /** Tag mesh for later identification / dispose. */
