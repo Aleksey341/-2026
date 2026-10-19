@@ -12,12 +12,31 @@ import {AssetSystem, readConfig, assetURL} from 'room-module/src/assets.js';
 const CONFIG=await readConfig();
 // R15: remove VR gate and its visual assets.
 CONFIG.glasses.model=null;if(CONFIG.objects['glasses-stand'])CONFIG.objects['glasses-stand'].enabled=false;
+// Toggle: true = Meshy businessman walk GLB; false = previous procedural avatar (quick rollback).
+const USE_MESHY_BUSINESSMAN=true;
+if(USE_MESHY_BUSINESSMAN){
+ CONFIG.character.useProcedural=false;
+ // V2 fix (hands/shoulders/shoes). V1 kept at hero-businessman-walk.glb for rollback.
+ CONFIG.character.model='assets/models/hero-businessman-walk-v2.glb';
+ CONFIG.character.futureModel='assets/models/hero-businessman-walk-v2.glb';
+ CONFIG.character.height=1.80;
+ // Meshy faces +Z; player forward at yaw=0 is -Z → yaw 180° on the model.
+ CONFIG.character.rotation=[0,180,0];
+ CONFIG.character.animations={walk:'Armature|walking_man|baselayer'};
+ CONFIG.character.walkTimeScale=.80;
+ CONFIG.character.moveSpeed=1.0;
+ CONFIG.character.headOffset=[0,-.05,-.02];
+}else{
+ // Previous in-game avatar: stylised procedural businessman (keeps heroine GLBs unused).
+ CONFIG.character.useProcedural=true;CONFIG.character.height=1.78;CONFIG.character.headOffset=[0,-.08,-.02];
+ CONFIG.character.moveSpeed=1.65;
+}
 const $=id=>document.getElementById(id), scene=new T.Scene();scene.background=new T.Color('#c6d7e8');
 const renderer=new T.WebGLRenderer({canvas:$('game'),antialias:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;
 const camera=new T.PerspectiveCamera(53,innerWidth/innerHeight,.06,180),world=new T.Group();scene.add(world);
 let capture=null;const records={};const addWorld=world.add.bind(world);world.add=(...objects)=>{addWorld(...objects);if(capture)(records[capture]??=[]).push(...objects);return world};
 const mat=(color,roughness=.65,metalness=0)=>new T.MeshStandardMaterial({color,roughness,metalness});
-const M={wall:mat('#e3e0db'),ceiling:mat('#f5f1e9'),floor:mat('#b7b9bf',.4),trim:mat('#dad8d5'),wood:mat('#c9a27e'),dark:mat('#242938',.4),chair:mat('#63758f',.91),purple:mat('#7445ce',.88),pants:mat('#343342',.9),skin:mat('#d8a286',.78),hair:mat('#382822',.68),shoe:mat('#efedef',.7),metal:mat('#9d9fa6',.3,.7),gold:mat('#c7a779',.28,.65),leaf:mat('#386543'),black:mat('#101622'),white:mat('#ede9e2')};
+const M={wall:mat('#e3e0db'),ceiling:mat('#f5f1e9'),floor:mat('#b7b9bf',.4),trim:mat('#dad8d5'),wood:mat('#c9a27e'),dark:mat('#242938',.4),chair:mat('#63758f',.91),purple:mat('#7445ce',.88),pants:mat('#1a2744',.9),skin:mat('#c99578',.78),hair:mat('#1c1614',.62),shoe:mat('#141416',.55),metal:mat('#9d9fa6',.3,.7),gold:mat('#c7a779',.28,.65),leaf:mat('#386543'),black:mat('#101622'),white:mat('#f4f4f6',.82),shirt:mat('#f7f7f9',.86),tie:mat('#1e3a6e',.7),belt:mat('#1a1a1c',.55)};
 const emissive=(c,p=.7)=>new T.MeshStandardMaterial({color:c,emissive:c,emissiveIntensity:p});
 function mesh(geo,m,x=0,y=0,z=0,p=world){const o=new T.Mesh(geo,m);o.position.set(x,y,z);o.castShadow=true;o.receiveShadow=true;p.add(o);return o}
 function box(w,h,d,m,x,y,z,p=world){return mesh(new T.BoxGeometry(w,h,d),m,x,y,z,p)}
@@ -88,21 +107,59 @@ capture=null;
 // Indoor plants with individually curved broad leaves.
 let plantIndex=0;function plant(x,z){capture=`plant-${++plantIndex}`;cyl(.23,.17,.49,M.white,x,.245,z);cyl(.2,.2,.015,mat('#3c332c'),x,.49,z);for(let i=0;i<12;i++){const a=i*2.4,h=.9+(i%4)*.18,dx=Math.cos(a)*.26,dz=Math.sin(a)*.26;rod([x,.49,z],[x+dx,h,z+dz],.009,M.leaf);const l=ell(.095,.24,.023,M.leaf,x+dx*1.12,h+.1,z+dz*1.12);l.rotation.set(.28,a,-Math.cos(a)*.6)}obstacle(x,z,.5,.5)}plant(-3.57,-2.82);plant(3.55,-2.95);plant(3.57,2.73);
 capture=null;
-// Stylised adult heroine: shaped knitwear, straight trousers, smooth low bun.
+// Stylised adult businessman: white shirt, navy tie, navy trousers, short hair.
 capture=null;
-const player=new T.Group();player.position.set(.9,0,1.63);scene.add(player);const body=new T.Group();player.add(body);
-profile([[.145,0],[.19,.07],[.225,.22],[.23,.36],[.195,.43],[.13,.47]],M.purple,0,.88,0,body,1,.64);profile([[.105,0],[.11,.035],[.097,.125],[.092,.13]],M.purple,0,1.32,0,body,1,.8);profile([[.152,0],[.16,.04],[.155,.085]],M.purple,0,.87,0,body,1,.75);box(.006,.19,.009,M.metal,0,1.33,-.109,body);box(.025,.035,.013,M.metal,0,1.24,-.12,body);
-ell(.19,.14,.13,M.pants,0,.87,0,body);
-const legs=[],arms=[];for(const side of[-1,1]){const leg=new T.Group();leg.position.set(side*.096,.85,0);body.add(leg);profile([[.085,0],[.09,.12],[.083,.32],[.088,.57],[.091,.74]],M.pants,0,-.74,0,leg,1,.94);rounded(.157,.072,.275,.052,M.shoe,0,-.817,-.049,leg);rounded(.162,.028,.283,.05,M.white,0,-.835,-.049,leg);for(let j=0;j<3;j++)box(.09,.006,.012,M.white,0,-.735,-.065-j*.025,leg);legs.push(leg);
-const arm=new T.Group();arm.position.set(side*.206,1.275,0);arm.rotation.z=side*.12;body.add(arm);profile([[.053,0],[.073,.055],[.079,.17],[.076,.28],[.061,.38]],M.purple,0,-.37,0,arm,1,.95);cyl(.052,.05,.065,M.purple,0,-.389,0,arm);ell(.042,.073,.029,M.skin,0,-.474,-.002,arm);ell(.021,.041,.024,M.skin,-side*.031,-.451,-.022,arm);arms.push(arm)}
-const head=new T.Group();head.position.y=1.54;body.add(head);cyl(.06,.072,.12,M.skin,0,-.13,0,head);ell(.119,.162,.11,M.skin,0,.018,-.005,head);ell(.09,.085,.083,M.skin,0,-.065,-.031,head);for(let s of[-1,1]){ell(.022,.034,.02,M.skin,s*.119,.005,0,head);ell(.008,.008,.005,M.metal,s*.12,-.018,-.017,head)}
-// Hair cap covers the rear of the head; a single swept front lock.
-const haircap=mesh(new T.SphereGeometry(1,40,24,0,Math.PI*2,0,Math.PI*.53),M.hair,0,.047,.013,head);haircap.scale.set(.125,.139,.118);ell(.115,.126,.075,M.hair,0,.005,.071,head);ell(.069,.068,.059,M.hair,0,-.079,.119,head);
-const lockCurve=new T.CatmullRomCurve3([new T.Vector3(.071,.151,-.033),new T.Vector3(-.041,.132,-.091),new T.Vector3(-.099,.06,-.1),new T.Vector3(-.104,-.048,-.091),new T.Vector3(-.091,-.202,-.06)]);mesh(new T.TubeGeometry(lockCurve,28,.017,8,false),M.hair,0,0,0,head);
-// Almond eyes with whites, brown irises, lashes, brows, nose and lips.
-for(let s of[-1,1]){ell(.033,.016,.009,mat('#f0e7df'),s*.047,.028,-.106,head);ell(.0115,.012,.004,mat('#65422d'),s*.047,.027,-.115,head);ell(.006,.008,.002,M.black,s*.047,.027,-.119,head);ell(.003,.003,.001,M.white,s*.044,.031,-.121,head);const brow=ell(.034,.006,.007,M.hair,s*.047,.063,-.104,head);brow.rotation.z=s*.11;const lid=ell(.034,.003,.004,M.hair,s*.047,.042,-.11,head)}ell(.014,.03,.022,M.skin,0,-.005,-.108,head);ell(.027,.004,.007,mat('#a66762'),0,-.055,-.104,head);ell(.023,.005,.006,mat('#c18579'),0,-.061,-.102,head);
+const player=new T.Group();player.position.set(.9,0,1.63);scene.add(player);
+function buildBusinessman(variant='base'){
+ const shirtMat=variant==='future'?mat('#f2f4f8',.88):M.shirt;
+ const pantsMat=variant==='future'?mat('#d8dde6',.88):M.pants;
+ const body=new T.Group();const legs=[],arms=[];
+ // Dress-shirt torso (narrower shoulders than the old knitwear silhouette)
+ profile([[.14,0],[.175,.07],[.2,.22],[.205,.38],[.175,.46],[.12,.5]],shirtMat,0,.92,0,body,1,.68);
+ profile([[.095,0],[.1,.035],[.09,.12],[.085,.13]],shirtMat,0,1.38,0,body,1,.82);
+ profile([[.15,0],[.155,.04],[.15,.08]],shirtMat,0,.91,0,body,1,.74);
+ // Collar ring + tie
+ cyl(.07,.085,.04,shirtMat,0,1.48,0,body);box(.04,.03,.018,M.tie,0,1.43,-.11,body);box(.03,.2,.011,M.tie,0,1.28,-.112,body);box(.008,.2,.012,mat('#c9d6ea',.75),0,1.28,-.118,body);
+ box(.26,.035,.11,M.belt,0,.92,0,body);box(.032,.024,.018,M.metal,0,.92,-.07,body);
+ ell(.185,.13,.125,pantsMat,0,.91,0,body);
+ for(const side of[-1,1]){
+  const leg=new T.Group();leg.position.set(side*.095,.88,0);body.add(leg);
+  profile([[.082,0],[.088,.12],[.08,.34],[.085,.6],[.088,.78]],pantsMat,0,-.78,0,leg,1,.95);
+  rounded(.155,.065,.27,.045,M.shoe,0,-.855,-.045,leg);
+  for(let j=0;j<3;j++)box(.075,.004,.01,mat('#2a2a2e'),0,-.775,-.065-j*.02,leg);
+  legs.push(leg);
+  const arm=new T.Group();arm.position.set(side*.195,1.33,0);arm.rotation.z=side*.08;body.add(arm);
+  profile([[.048,0],[.068,.055],[.072,.17],[.068,.28],[.055,.38]],shirtMat,0,-.37,0,arm,1,.95);
+  cyl(.05,.048,.055,shirtMat,0,-.385,0,arm);ell(.04,.07,.028,M.skin,0,-.47,-.002,arm);ell(.02,.038,.022,M.skin,-side*.03,-.45,-.018,arm);
+  if(side===-1){cyl(.045,.045,.016,M.metal,0,-.41,0,arm);cyl(.043,.043,.012,M.black,0,-.41,0,arm)}
+  arms.push(arm);
+ }
+ const head=new T.Group();head.position.y=1.58;body.add(head);
+ cyl(.06,.07,.12,M.skin,0,-.13,0,head);ell(.118,.158,.108,M.skin,0,.018,-.004,head);ell(.09,.085,.082,M.skin,0,-.065,-.028,head);
+ for(let s of[-1,1])ell(.021,.033,.019,M.skin,s*.118,.004,0,head);
+ // Short cropped hair covering the crown
+ const hairTop=ell(.122,.1,.118,M.hair,0,.055,.008,head);hairTop.scale.y=1;
+ ell(.12,.07,.1,M.hair,0,.02,.055,head);ell(.105,.055,.09,M.hair,0,-.015,.075,head);
+ for(let s of[-1,1]){ell(.1,.08,.05,M.hair,s*.08,.02,.02,head)}
+ for(let s of[-1,1]){ell(.032,.016,.009,mat('#efe6de'),s*.046,.028,-.108,head);ell(.011,.012,.004,mat('#4a3426'),s*.046,.027,-.116,head);ell(.006,.0075,.002,M.black,s*.046,.027,-.12,head);const brow=ell(.034,.006,.006,M.hair,s*.046,.064,-.106,head);brow.rotation.z=s*.08}
+ ell(.014,.03,.022,M.skin,0,-.002,-.11,head);ell(.026,.0045,.006,mat('#8f5d58'),0,-.055,-.106,head);
+ return {body,legs,arms,head};
+}
+const heroBase=buildBusinessman('base'),heroFuture=buildBusinessman('future');
+player.add(heroBase.body,heroFuture.body);heroFuture.body.visible=false;
+// Keep procedural meshes available for rollback, but hide them while Meshy GLB is active.
+if(!CONFIG.character.useProcedural){heroBase.body.visible=false;heroFuture.body.visible=false;}
+let body=heroBase.body,legs=heroBase.legs,arms=heroBase.arms,head=heroBase.head;
+let assets=null;
+function applyHeroVariant(variant){
+ if(!CONFIG.character.useProcedural){heroBase.body.visible=false;heroFuture.body.visible=false;return;}
+ const next=variant==='future'?heroFuture:heroBase;
+ heroBase.body.visible=variant!=='future';heroFuture.body.visible=variant==='future';
+ body=next.body;legs=next.legs;arms=next.arms;head=next.head;
+ if(assets){assets.body=body;assets.head=head;assets.heroBones={head};assets.hero=body;}
+}
 const headset=new T.Group();headset.visible=false;const marker=new T.Group();marker.visible=false;
-const assets=new AssetSystem({T,world,records,obstacles,config:CONFIG,wallSurfaces,player,body,headset});
+assets=new AssetSystem({T,world,records,obstacles,config:CONFIG,wallSurfaces,player,body,headset,head,onVariant:applyHeroVariant});
 await assets.initialize();
 
 const robotPoster=await new T.TextureLoader().loadAsync(assetURL(CONFIG.posterRobot)),humanPoster=await new T.TextureLoader().loadAsync(assetURL(CONFIG.posterHuman));robotPoster.colorSpace=humanPoster.colorSpace=T.SRGBColorSpace;
@@ -161,8 +218,9 @@ const raycaster=new T.Raycaster();canvas.addEventListener('click',e=>{
 });
 for(const b of document.querySelectorAll('[data-key]')){b.onpointerdown=e=>{e.preventDefault();b.setPointerCapture(e.pointerId);keys.add(b.dataset.key)};b.onpointerup=b.onpointercancel=()=>keys.delete(b.dataset.key)}
 function blocked(x,z){if(roomIndex===1)return hall.blocked(x,z);if(roomIndex===2)return future.blocked(x,z)||x<future.center.x-W/2+.23||x>future.center.x+W/2-.23||z<future.center.z-D/2+.23||z>future.center.z+D/2-.23;if(x< -W/2+.23||x>W/2-.23||z< -D/2+.23||z>D/2-.23)return true;return obstacles.some(o=>Math.abs(x-o.x)<o.w&&Math.abs(z-o.z)<o.d);}
-let last=performance.now(),walk=0;const target=new T.Vector3(),desired=new T.Vector3();function frame(now){requestAnimationFrame(frame);const dt=paused?0:T.MathUtils.clamp((now-last)/1000,0,.04);last=now;let moving=false;let dx=0,dz=0;if(!paused&&!uiOpen&&!elevator.active&&state!=='wearing'){const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'));const right=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));dx=right*Math.cos(yaw)-forward*Math.sin(yaw);dz=-right*Math.sin(yaw)-forward*Math.cos(yaw);const len=Math.hypot(dx,dz);if(len){dx/=len;dz/=len;const nx=player.position.x+dx*dt*1.65,nz=player.position.z+dz*dt*1.65;if(!blocked(nx,player.position.z)){player.position.x=nx;moving=true}if(!blocked(player.position.x,nz)){player.position.z=nz;moving=true}const angle=Math.atan2(-dx,-dz);player.rotation.y+=Math.atan2(Math.sin(angle-player.rotation.y),Math.cos(angle-player.rotation.y))*Math.min(1,dt*12)}}
-walk=T.MathUtils.damp(walk,moving?1:0,9,dt);phase+=dt*8;body.position.y=Math.abs(Math.sin(phase))*.016*walk+Math.sin(now*.0016)*.003;legs[0].rotation.x=Math.sin(phase)*.36*walk;legs[1].rotation.x=-Math.sin(phase)*.36*walk;arms[0].rotation.x=-Math.sin(phase)*.29*walk;arms[1].rotation.x=Math.sin(phase)*.29*walk;
+let last=performance.now(),walk=0;const target=new T.Vector3(),desired=new T.Vector3();const moveSpeed=CONFIG.character.moveSpeed??1.65;const faceTarget=new T.Quaternion(),faceEuler=new T.Euler(0,0,0,'YXZ');
+function frame(now){requestAnimationFrame(frame);const dt=paused?0:T.MathUtils.clamp((now-last)/1000,0,.04);last=now;let moving=false;let dx=0,dz=0;if(!paused&&!uiOpen&&!elevator.active&&state!=='wearing'){const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'));const right=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));dx=right*Math.cos(yaw)-forward*Math.sin(yaw);dz=-right*Math.sin(yaw)-forward*Math.cos(yaw);const len=Math.hypot(dx,dz);if(len){dx/=len;dz/=len;const nx=player.position.x+dx*dt*moveSpeed,nz=player.position.z+dz*dt*moveSpeed;if(!blocked(nx,player.position.z)){player.position.x=nx;moving=true}if(!blocked(player.position.x,nz)){player.position.z=nz;moving=true}const angle=Math.atan2(-dx,-dz);faceEuler.set(0,angle,0);faceTarget.setFromEuler(faceEuler);player.quaternion.slerp(faceTarget,1-Math.exp(-dt*6.5));}}
+if(CONFIG.character.useProcedural){walk=T.MathUtils.damp(walk,moving?1:0,9,dt);phase+=dt*8;body.position.y=Math.abs(Math.sin(phase))*.016*walk+Math.sin(now*.0016)*.003;legs[0].rotation.x=Math.sin(phase)*.36*walk;legs[1].rotation.x=-Math.sin(phase)*.36*walk;arms[0].rotation.x=-Math.sin(phase)*.29*walk;arms[1].rotation.x=Math.sin(phase)*.29*walk;}
 
 if(state==='worn'){door.position.z=T.MathUtils.damp(door.position.z,doorZ+doorWidth+.03,2,dt)}else{door.position.z=T.MathUtils.damp(door.position.z,doorZ,3,dt)}let actionText='';if(roomIndex===0){tv.update(dt);if(doorNear())actionText='Войти';}else if(roomIndex===1){if(elevator.state==='ELEVATOR_READY'&&elevator.near(player.position))actionText='';else{const i=hall.nearest(player.position);if(i!==null)actionText='Рассмотреть: '+hall.themes[i].name;}}else if(roomIndex===2){if(future.padNear(player.position))actionText='Будущее здесь';else if(future.inspectNear(player.position))actionText='Рассмотреть';}if(elevator.awaitingExit)actionText='Выйти в Офис будущего';action.hidden=paused||uiOpen||(elevator.active&&!elevator.awaitingExit)||!actionText;action.innerHTML='<kbd>E</kbd> '+actionText;$('step1').parentElement.hidden=true;
 // Orbit follows the heroine; camera stays within the finished room.
@@ -178,7 +236,7 @@ function setView(view){if(roomIndex!==2)return;if(view==='inside'){yaw=.55;pitch
 for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>setView(b.dataset.view);
 $('preview-future').onclick=()=>{paused=false;$('settings').hidden=true;enterRoom(2);setView('inside');};
 camera.position.set(.9,2.25,2.8);requestAnimationFrame(frame);addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-reveal.visible=true;const reactorNotice=document.createElement('div');reactorNotice.id='reactor-notice';reactorNotice.hidden=true;document.body.append(reactorNotice);$('loading').hidden=true;const welcome=$('welcome'),nameInput=$('heroine-name'),rollNames=['Ая','Лея','Мира','Кира'];$('welcome-roll').onclick=()=>{nameInput.value=rollNames[Math.floor(Math.random()*rollNames.length)];nameInput.focus();};$('welcome-start').onclick=()=>{const name=nameInput.value.trim()||'Ева';try{localStorage.setItem('hr-heroine-name',name);}catch{};document.body.classList.remove('welcome-open');welcome.hidden=true;paused=false;progress.events.intro=true;nameInput.blur();};welcome.hidden=false;document.body.classList.add('welcome-open');const welcomeHero=welcome.querySelector('video.start-girl');if(welcomeHero){welcomeHero.muted=true;welcomeHero.play().catch(()=>{});}globalThis.__roomDebug={setView,scene,camera,renderer,enterRoom,door,doorZ,wallSurfaces,assets,records,obstacles,player,headset,near,act,reset,frame,keys,future,hall,tv,doorNear,openProjects,showProject,closeProjects,getRoom:()=>roomIndex,blocked,getState:()=>state};
+reveal.visible=true;const reactorNotice=document.createElement('div');reactorNotice.id='reactor-notice';reactorNotice.hidden=true;document.body.append(reactorNotice);$('loading').hidden=true;const welcome=$('welcome'),nameInput=$('heroine-name'),rollNames=['Алекс','Макс','Илья','Роман'];$('welcome-roll').onclick=()=>{nameInput.value=rollNames[Math.floor(Math.random()*rollNames.length)];nameInput.focus();};$('welcome-start').onclick=()=>{const name=nameInput.value.trim()||'Алекс';try{localStorage.setItem('hr-heroine-name',name);}catch{};document.body.classList.remove('welcome-open');welcome.hidden=true;paused=false;progress.events.intro=true;nameInput.blur();};welcome.hidden=false;document.body.classList.add('welcome-open');const welcomeHero=welcome.querySelector('video.start-girl');if(welcomeHero){welcomeHero.muted=true;welcomeHero.play().catch(()=>{});}globalThis.__roomDebug={setView,scene,camera,renderer,enterRoom,door,doorZ,wallSurfaces,assets,records,obstacles,player,headset,near,act,reset,frame,keys,future,hall,tv,doorNear,openProjects,showProject,closeProjects,getRoom:()=>roomIndex,blocked,getState:()=>state,startGame:()=>{document.body.classList.remove('welcome-open');welcome.hidden=true;paused=false;progress.events.intro=true;},isPaused:()=>paused};
 
 if(location.hash==="#future"){enterRoom(2);setView("inside");}
 
