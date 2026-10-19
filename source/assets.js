@@ -47,8 +47,14 @@ export class AssetSystem{
      }
      hero.traverse(o=>{if(o.isBone){heroBones[o.name]=o;if(o.name==='Head'||o.name==='head')heroBones.head=o;}});
      if(!heroBones.head){const any=Object.values(heroBones)[0];if(any)heroBones.head=any;}
-     loaded.set(path,{hero,mixer,actions,heroBones,clips:r.animations.map(a=>a.name)});
-     console.info('[character]',path,'clips:',r.animations.map(a=>a.name),'heightScale→',c.height);
+     // Capture rest/bind local transforms before AnimationMixer mutates bones.
+     const bindPose={};
+     for(const name of['LeftShoulder','RightShoulder','LeftHand','RightHand']){
+      const b=heroBones[name];if(!b)continue;
+      bindPose[name]={position:b.position.clone(),quaternion:b.quaternion.clone(),scale:b.scale.clone()};
+     }
+     loaded.set(path,{hero,mixer,actions,heroBones,bindPose,clips:r.animations.map(a=>a.name)});
+     console.info('[character]',path,'clips:',r.animations.map(a=>a.name),'heightScale→',c.height,'bind',Object.keys(bindPose));
     }catch(e){this.warn('Персонаж '+path,e);}
    }
    const base=loaded.get(c.model)||[...loaded.values()][0];
@@ -75,9 +81,28 @@ export class AssetSystem{
    v.hero.visible=v===c;
    if(v!==c)v.mixer.stopAllAction();
   }
-  Object.assign(this,{hero:c.hero,mixer:c.mixer,actions:c.actions,heroBones:c.heroBones});
+  Object.assign(this,{hero:c.hero,mixer:c.mixer,actions:c.actions,heroBones:c.heroBones,bindPose:c.bindPose||null});
   this.body.visible=false;this.activeClip=null;
   if(typeof this.onVariant==='function')this.onVariant(variant);
+ }
+ applyMeshyPoseFixes(){
+  // V3 (and any clean rig): both corrections 0 → leave bones untouched after mixer.update.
+  // V1/V2 rollback: restore meshyShoulderCorrection / meshyHandRotationCorrection > 0.
+  if(!this.bindPose||!this.heroBones)return;
+  const shCorr=T.MathUtils.clamp(this.config.character.meshyShoulderCorrection??0,0,1);
+  const handDeg=this.config.character.meshyHandRotationCorrection??0;
+  if(shCorr<=0&&!handDeg)return;
+  for(const name of['LeftShoulder','RightShoulder']){
+   const bone=this.heroBones[name],bind=this.bindPose[name];if(!bone||!bind)continue;
+   bone.position.y=bind.position.y;
+   if(shCorr>0)bone.quaternion.slerp(bind.quaternion,shCorr);
+  }
+  if(handDeg){
+   const rad=T.MathUtils.degToRad(handDeg);
+   const lh=this.heroBones.LeftHand,rh=this.heroBones.RightHand;
+   if(lh){lh.rotateX(rad*.35);lh.rotateZ(rad);}
+   if(rh){rh.rotateX(rad*.35);rh.rotateZ(-rad);}
+  }
  }
  update(dt,moving,state){if(!this.hero)return;
   if(!this.config.character.useProcedural){
@@ -91,6 +116,7 @@ export class AssetSystem{
      walk.fadeOut(.22);this.activeClip='rest';
     }
     this.mixer.update(dt);
+    this.applyMeshyPoseFixes();
    }else{
     // Legacy fallback for older Mixamo-style skeletons without usable clips.
     this.walkBlend=T.MathUtils.damp(this.walkBlend||0,moving?1:0,7,dt);this.walkPhase=(this.walkPhase||0)+dt*2*Math.PI/1.05;const w=this.walkBlend,phase=this.walkPhase;

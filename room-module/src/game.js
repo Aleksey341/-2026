@@ -16,9 +16,9 @@ CONFIG.glasses.model=null;if(CONFIG.objects['glasses-stand'])CONFIG.objects['gla
 const USE_MESHY_BUSINESSMAN=true;
 if(USE_MESHY_BUSINESSMAN){
  CONFIG.character.useProcedural=false;
- // V2 fix (hands/shoulders/shoes). V1 kept at hero-businessman-walk.glb for rollback.
- CONFIG.character.model='assets/models/hero-businessman-walk-v2.glb';
- CONFIG.character.futureModel='assets/models/hero-businessman-walk-v2.glb';
+ // V3 clean Meshy walking rig. V1/V2 kept for rollback (walk.glb / walk-v2.glb).
+ CONFIG.character.model='assets/models/hero-businessman-walk-v3.glb';
+ CONFIG.character.futureModel='assets/models/hero-businessman-walk-v3.glb';
  CONFIG.character.height=1.80;
  // Meshy faces +Z; player forward at yaw=0 is -Z → yaw 180° on the model.
  CONFIG.character.rotation=[0,180,0];
@@ -26,6 +26,12 @@ if(USE_MESHY_BUSINESSMAN){
  CONFIG.character.walkTimeScale=.80;
  CONFIG.character.moveSpeed=1.0;
  CONFIG.character.headOffset=[0,-.05,-.02];
+ // V3: pure animation — no post-mixer shoulder/hand overrides.
+ // V1/V2 rollback: restore walk-v2.glb + shoulder .75 / hand 14°.
+ const MESHY_SHOULDER_CORRECTION=0; // 0=raw anim, 1=full bind orientation
+ const MESHY_HAND_ROTATION_CORRECTION=0; // degrees, whole-hand local tilt
+ CONFIG.character.meshyShoulderCorrection=MESHY_SHOULDER_CORRECTION;
+ CONFIG.character.meshyHandRotationCorrection=MESHY_HAND_ROTATION_CORRECTION;
 }else{
  // Previous in-game avatar: stylised procedural businessman (keeps heroine GLBs unused).
  CONFIG.character.useProcedural=true;CONFIG.character.height=1.78;CONFIG.character.headOffset=[0,-.08,-.02];
