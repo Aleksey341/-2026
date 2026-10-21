@@ -329,7 +329,7 @@ if(idleHead&&idleAllowed){
  }
  idleElapsed+=dt;
  const blend=T.MathUtils.smoothstep(Math.min(idleElapsed,1.2),.3,1.2);
- const headTurn=uiOpen?.045:.014*Math.sin(now*.0008);
+ const headTurn=uiOpen ? 0.045 : 0.014*Math.sin(now*.0008);
  const headTilt=.009*Math.sin(now*.0011);
  idleHead.quaternion.copy(idlePoseHead.base).multiply(new T.Quaternion().setFromEuler(new T.Euler(headTilt*blend,headTurn*blend,0)));
 }else if(idlePoseHead){
