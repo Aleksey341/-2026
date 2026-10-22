@@ -5,51 +5,90 @@ import {assetURL} from 'room-module/src/assets.js';
 const PAD_RADIUS=1.32;
 const PAD_ENTER=1.28;
 const PAD_EXIT=1.70;
-const TITLE_HOVER_Y=.45;
-const TITLE_FLAT_Y=.028;
-const TITLE_WIDTH=PAD_RADIUS*2*.76;
+const TITLE_WIDTH=PAD_RADIUS*2*.70; // longest line ≈ 70% of diameter
+const TITLE_BOTTOM=.36; // bottom edge above pad surface in IDLE
+const TITLE_FLAT_Y=.03;
+const TITLE_LAYERS=5;
+const TITLE_DEPTH=.09;
+// Face player spawn (center.x+3.2, center.z+1.9) relative to pad origin
+const TITLE_FACE_Y=Math.atan2(3.2,1.9);
+const TITLE_IDLE_TILT=0;
 const ACTIVATE_DUR=1.5;
 const RESTORE_DUR=1.5;
 const STATES={IDLE:'IDLE',ACTIVATING:'ACTIVATING',PRESENTATION:'PRESENTATION',RESTORING:'RESTORING',WAIT_FOR_EXIT:'WAIT_FOR_EXIT'};
 
-function makeTitleTexture(phrase){
- const w=2048,h=512,c=document.createElement('canvas');c.width=w;c.height=h;
- const ctx=c.getContext('2d');
- ctx.clearRect(0,0,w,h);
- ctx.textAlign='center';ctx.textBaseline='middle';
- ctx.font='900 210px Arial, Helvetica, sans-serif';
- ctx.lineJoin='round';ctx.miterLimit=2;
- ctx.lineWidth=28;ctx.strokeStyle='rgba(40,90,160,.55)';ctx.strokeText(phrase,w/2,h/2+8);
- ctx.lineWidth=14;ctx.strokeStyle='rgba(120,180,255,.9)';ctx.strokeText(phrase,w/2,h/2);
- ctx.fillStyle='#ffffff';ctx.fillText(phrase,w/2,h/2);
- ctx.fillStyle='rgba(180,220,255,.35)';ctx.fillText(phrase,w/2,h/2-6);
- const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=8;tex.needsUpdate=true;return tex;
+function measurePhrasePx(phrase){
+ const m=document.createElement('canvas').getContext('2d');
+ m.font='900 280px Arial, Helvetica, sans-serif';
+ return m.measureText(phrase).width;
 }
 
-function makeFloatingTitle(phrase){
- const root=new T.Group();root.name='future-title';
- const map=makeTitleTexture(phrase);
- const aspect=2048/512;
- const h=TITLE_WIDTH/aspect;
- const layers=7;
- for(let i=0;i<layers;i++){
-  const t=i/(layers-1);
+function makeLineTexture(phrase){
+ const fontSize=280,pad=48;
+ const probe=document.createElement('canvas').getContext('2d');
+ probe.font=`900 ${fontSize}px Arial, Helvetica, sans-serif`;
+ const tw=Math.ceil(probe.measureText(phrase).width);
+ const w=tw+pad*2,h=Math.ceil(fontSize*1.35)+pad;
+ const c=document.createElement('canvas');c.width=w;c.height=h;
+ const ctx=c.getContext('2d',{alpha:true});
+ ctx.clearRect(0,0,w,h);
+ ctx.textAlign='center';ctx.textBaseline='middle';
+ ctx.font=`900 ${fontSize}px Arial, Helvetica, sans-serif`;
+ ctx.lineJoin='round';ctx.miterLimit=2;
+ const cx=w/2,cy=h/2;
+ // Opaque neon rim + fill — no soft haze that reads as a plate
+ ctx.lineWidth=18;ctx.strokeStyle='rgba(100,180,255,.95)';ctx.strokeText(phrase,cx,cy);
+ ctx.lineWidth=8;ctx.strokeStyle='rgba(210,235,255,1)';ctx.strokeText(phrase,cx,cy);
+ ctx.fillStyle='#ffffff';ctx.fillText(phrase,cx,cy);
+ // Drop faint fringe only — do NOT boost mid-alpha (that fills a solid plate between glyphs)
+ const img=ctx.getImageData(0,0,w,h),d=img.data;
+ for(let i=3;i<d.length;i+=4){if(d[i]<96){d[i]=0;d[i-1]=d[i-2]=d[i-3]=0;}}
+ ctx.putImageData(img,0,0);
+ const tex=new T.CanvasTexture(c);
+ tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=8;tex.premultiplyAlpha=false;
+ tex.generateMipmaps=false;tex.minFilter=T.LinearFilter;tex.magFilter=T.LinearFilter;tex.needsUpdate=true;
+ return tex;
+}
+
+function makeLineGroup(phrase,pxWidth,worldPerPx){
+ const g=new T.Group();g.name='title-line-'+phrase;
+ const tex=makeLineTexture(phrase);
+ const width=pxWidth*worldPerPx;
+ const height=280*1.15*worldPerPx; // natural font height, no axis stretch
+ const step=TITLE_DEPTH/(TITLE_LAYERS-1);
+ const plates=[];
+ for(let i=0;i<TITLE_LAYERS;i++){
+  const t=i/(TITLE_LAYERS-1);
   const mat=new T.MeshBasicMaterial({
-   map,transparent:true,opacity:.22+.78*(1-t*.55),side:T.DoubleSide,depthWrite:i===0,toneMapped:false,
-   color:new T.Color().setHSL(.58,.35,.92+.08*(1-t))
+   map:tex,transparent:true,opacity:Math.max(.2,1-t*.8),side:T.DoubleSide,depthWrite:false,
+   toneMapped:false,alphaTest:.5,color:new T.Color(0xffffff)
   });
-  const plane=new T.Mesh(new T.PlaneGeometry(TITLE_WIDTH,h),mat);
-  plane.rotation.x=-Math.PI/2;
-  plane.position.y=i*.012;
-  plane.renderOrder=10+i;
-  root.add(plane);
+  const plane=new T.Mesh(new T.PlaneGeometry(width,height),mat);
+  plane.position.z=-i*step; // extrusion depth
+  plane.renderOrder=20+i;
+  g.add(plane);plates.push({mesh:plane,idleZ:-i*step,t});
  }
- // Soft neon glow sheet under the letters
- const glowMat=new T.MeshBasicMaterial({color:'#7eb6ff',transparent:true,opacity:.22,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending,toneMapped:false});
- const glow=new T.Mesh(new T.PlaneGeometry(TITLE_WIDTH*1.08,h*1.35),glowMat);
- glow.rotation.x=-Math.PI/2;glow.position.y=-.008;glow.renderOrder=9;root.add(glow);
- root.userData={baseY:TITLE_HOVER_Y,layers,glowMat,height:h};
- root.position.y=TITLE_HOVER_Y;
+ g.userData={plates,width,height,step};
+ return g;
+}
+
+function makeFloatingTitle(){
+ const root=new T.Group();root.name='future-title';
+ // Face player/camera at room entry
+ root.rotation.y=TITLE_FACE_Y;
+ const pxTop=measurePhrasePx('БУДУЩЕЕ');
+ const pxBot=measurePhrasePx('ЗДЕСЬ');
+ const worldPerPx=TITLE_WIDTH/pxTop; // longest line = 70% diameter
+ const lineTop=makeLineGroup('БУДУЩЕЕ',pxTop,worldPerPx);
+ const lineBot=makeLineGroup('ЗДЕСЬ',pxBot,worldPerPx);
+ const gap=.07;
+ const h1=lineTop.userData.height,h2=lineBot.userData.height;
+ const totalH=h1+h2+gap;
+ lineTop.position.y=(totalH/2-h1/2);
+ lineBot.position.y=-(totalH/2-h2/2);
+ root.add(lineTop);root.add(lineBot);
+ root.userData={lineTop,lineBot,totalH,idleY:TITLE_BOTTOM+totalH/2};
+ root.position.y=root.userData.idleY;
  return root;
 }
 
@@ -116,7 +155,7 @@ export async function makeFuture(scene,config){
  const padNeon=new T.Mesh(new T.TorusGeometry(PAD_RADIUS+.02,.048,16,96),padNeonMat);
  padNeon.rotation.x=Math.PI/2;padNeon.position.y=.038;floorPad.add(padNeon);
 
- const title=makeFloatingTitle('БУДУЩЕЕ ЗДЕСЬ');
+ const title=makeFloatingTitle();
  floorPad.add(title);
 
  let fsm=STATES.IDLE;
@@ -144,30 +183,33 @@ export async function makeFuture(scene,config){
   if(fsm!==STATES.PRESENTATION)return;
   fsm=STATES.RESTORING;phaseT=0;ready=false;
  }
- function applyTitleVisual(p,bob=0){
+ const _titleWorld=new T.Vector3();
+ function applyTitleVisual(p,bob=0,camera=null){
   titleProgress=p;
-  const y=T.MathUtils.lerp(TITLE_HOVER_Y,TITLE_FLAT_Y,p)+bob*(1-p);
-  title.position.y=y;
-  let li=0;
-  const nLayers=title.userData.layers;
-  title.children.forEach((child)=>{
-   if(!child.isMesh)return;
-   if(child.material&&child.material.blending===T.AdditiveBlending){
-    child.material.opacity=T.MathUtils.lerp(.22,.05,p);
-    child.scale.setScalar(T.MathUtils.lerp(1,.9,p));
-    child.position.y=T.MathUtils.lerp(-.008,-.002,p);
-    return;
+  const idleY=title.userData.idleY;
+  // Descend while tilting upright → flat on pad (readable from above)
+  title.position.y=T.MathUtils.lerp(idleY,TITLE_FLAT_Y+title.userData.totalH*.12,p)+bob*(1-p);
+  title.rotation.x=T.MathUtils.lerp(TITLE_IDLE_TILT,-Math.PI/2,p);
+  // Face the live camera while hovering; keep entry facing when flat
+  if(camera&&p<1){
+   title.getWorldPosition(_titleWorld);
+   // PlaneGeometry faces +Z; yaw so +Z points at camera
+   let faceY=Math.atan2(camera.position.x-_titleWorld.x,camera.position.z-_titleWorld.z);
+   title.rotation.y=T.MathUtils.lerp(faceY,TITLE_FACE_Y,p);
+  }else title.rotation.y=TITLE_FACE_Y;
+  // Ensure upright (defeat euler drift)
+  if(p<.001)title.rotation.x=0;
+  title.rotation.z=0;
+  const {lineTop,lineBot}=title.userData;
+  for(const line of [lineTop,lineBot]){
+   for(const plate of line.userData.plates){
+    const {mesh,idleZ,t}=plate;
+    mesh.position.z=T.MathUtils.lerp(idleZ,-t*.0012,p);
+    const idleOp=t<.01?1:Math.max(.12,1-t*.85);
+    const flatOp=t<.05?1:.015;
+    mesh.material.opacity=T.MathUtils.lerp(idleOp,flatOp,p);
    }
-   const t=nLayers>1?li/(nLayers-1):0;
-   child.position.y=T.MathUtils.lerp(li*.012,.0008*li,p);
-   // Flatten volume: keep one sharp letter plane, fade depth plates
-   const idleOp=.22+.78*(1-t*.55);
-   const flatOp=t<.12?1:.04;
-   child.material.opacity=T.MathUtils.lerp(idleOp,flatOp,p);
-   li++;
-  });
-  const s=T.MathUtils.lerp(1,.96,p);
-  title.scale.set(s,1,s);
+  }
  }
  function applyRoomPresent(present){
   dimFactor=present;
@@ -199,32 +241,32 @@ export async function makeFuture(scene,config){
   hoverTime+=dt;
   if(fsm===STATES.IDLE){
    const bob=Math.sin(hoverTime*1.55)*.028;
-   applyTitleVisual(0,bob);
+   applyTitleVisual(0,bob,camera);
    applyRoomPresent(0);
    pulseNeon(true);
   }else if(fsm===STATES.ACTIVATING){
    phaseT+=dt;
    const u=Math.min(1,phaseT/ACTIVATE_DUR);
    const e=u*u*(3-2*u);
-   applyTitleVisual(e,0);
+   applyTitleVisual(e,0,camera);
    applyRoomPresent(e);
    pulseNeon(false);
-   if(u>=1){fsm=STATES.PRESENTATION;presentationCue=true;ready=true;applyTitleVisual(1,0);applyRoomPresent(1);}
+   if(u>=1){fsm=STATES.PRESENTATION;presentationCue=true;ready=true;applyTitleVisual(1,0,camera);applyRoomPresent(1);}
   }else if(fsm===STATES.PRESENTATION){
-   applyTitleVisual(1,0);
+   applyTitleVisual(1,0,camera);
    applyRoomPresent(1);
    pulseNeon(false);
   }else if(fsm===STATES.RESTORING){
    phaseT+=dt;
    const u=Math.min(1,phaseT/RESTORE_DUR);
    const e=u*u*(3-2*u);
-   applyTitleVisual(1-e,0);
+   applyTitleVisual(1-e,0,camera);
    applyRoomPresent(1-e);
    pulseNeon(e>.6);
-   if(u>=1){fsm=STATES.WAIT_FOR_EXIT;applyTitleVisual(0,0);applyRoomPresent(0);pulseNeon(true);}
+   if(u>=1){fsm=STATES.WAIT_FOR_EXIT;applyTitleVisual(0,0,camera);applyRoomPresent(0);pulseNeon(true);}
   }else if(fsm===STATES.WAIT_FOR_EXIT){
    const bob=Math.sin(hoverTime*1.55)*.028;
-   applyTitleVisual(0,bob);
+   applyTitleVisual(0,bob,camera);
    applyRoomPresent(0);
    pulseNeon(true);
   }
@@ -244,7 +286,7 @@ export async function makeFuture(scene,config){
   floorPanels.children.forEach((o,i)=>o.material.color.copy(floorBaseColors[i]));
   floorRails.forEach((o,i)=>o.material.color.copy(floorRailBase[i]));
   panels.forEach(p=>{p.material.color.copy(glassClear);p.material.opacity=.085;});
-  applyTitleVisual(0,0);pulseNeon(true);title.scale.set(1,1,1);
+  applyTitleVisual(0,0);pulseNeon(true);
  }
 
  return {

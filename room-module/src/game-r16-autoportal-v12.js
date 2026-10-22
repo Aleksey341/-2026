@@ -5,7 +5,7 @@ import {themeImage} from 'room-module/src/slide-theme.js';
 import {makeReactorRoom} from 'room-module/src/reactor-room.js';
 import {makeTelevision} from 'room-module/src/television.js';
 import {energyReactor} from 'room-module/src/retro.js';
-import {makeFuture} from './future-r16-v12-fixed-ring.js?v=v12-future-here-1';
+import {makeFuture} from './future-r16-v12-fixed-ring.js?v=v12-future-title-9';
 import {applyR16Environment} from './graphite-r16.js';
 import * as T from 'room-module/vendor/three.module.js';
 import {AssetSystem, readConfig, assetURL} from 'room-module/src/assets.js';
