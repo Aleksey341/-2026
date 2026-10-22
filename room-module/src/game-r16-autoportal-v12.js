@@ -61,13 +61,6 @@ for(const [key,path] of Object.entries(CONFIG.surfaces||{})){const tex=await new
 
 
 box(W+.3,.14,D+.3,M.ceiling,0,H+.07,0);
-// V12: layered lounge finishes. Decorative meshes only: navigation and obstacles unchanged.
-const loungeRug=new T.Mesh(new T.PlaneGeometry(3.35,2.35),new T.MeshStandardMaterial({color:'#c4b8ad',roughness:1,metalness:0}));
-loungeRug.rotation.x=-Math.PI/2;loungeRug.position.set(4.38,.013,-2.25);loungeRug.receiveShadow=true;world.add(loungeRug);
-const rugInset=new T.Mesh(new T.PlaneGeometry(3.17,2.17),new T.MeshStandardMaterial({color:'#d8ccc1',roughness:1,metalness:0}));
-rugInset.rotation.x=-Math.PI/2;rugInset.position.set(4.38,.015,-2.25);rugInset.receiveShadow=true;world.add(rugInset);
-const loungeLight=new T.PointLight('#ffe7cf',10,6.5,2);
-loungeLight.position.set(4.25,H-.45,-2.4);world.add(loungeLight);
 const wallSurfaces={back:[],front:[],left:[],right:[]};
 function wallPart(id,width,x,z,angle,u0=0,u1=1,v0=0,v1=1){
  const g=new T.PlaneGeometry(width*(u1-u0),H*(v1-v0));
@@ -108,10 +101,6 @@ capture="stationery";
 for(const [x,z] of[[-2.06,-.79],[-.53,-1.29]]){box(.25,.008,.32,M.white,x,.89,z);box(.012,.012,.23,M.dark,x+.16,.899,z);cyl(.048,.042,.095,M.white,x-.23,.936,z);cyl(.04,.04,.002,mat('#76503b'),x-.23,.984,z);const h=mesh(new T.TorusGeometry(.033,.007,8,18),M.white,x-.283,.938,z);h.rotation.y=Math.PI/2}
 capture="lamp";
 const lamp=new T.Group();lamp.position.set(-1.15,.8,-3.05);world.add(lamp);cyl(.14,.16,.035,M.gold,0,.02,0,lamp);rod([0,.04,0],[0,.44,0],.017,M.gold,lamp);const shade=mesh(new T.SphereGeometry(.22,32,16,0,Math.PI*2,0,Math.PI/2),M.gold,0,.43,0,lamp);cyl(.2,.2,.006,emissive('#fff0c8'),0,.425,0,lamp);
-capture="sofa";
-// Lounge corner.
-rounded(1.64,.27,.7,.13,M.purple,2.99,.17,-1.88);rounded(1.68,.1,.45,.13,M.purple,2.99,.58,-2.18).rotation.x=-Math.PI/2;for(let x of[2.2,3.78])rounded(.13,.4,.7,.055,M.purple,x,.33,-1.88);obstacle(3,-1.95,1.72,.85);capture="coffee-table";
-cyl(.41,.41,.04,M.white,2.95,.46,-.65);cyl(.035,.065,.41,M.metal,2.95,.23,-.65);cyl(.27,.27,.025,M.metal,2.95,.025,-.65);obstacle(2.95,-.65,.8,.8);
 capture="shelf";
 // Awards shelf and framed typography on the left wall.
 const shelf=new T.Group();shelf.position.set(-3.7,0,-1.1);shelf.rotation.y=Math.PI/2;world.add(shelf);for(let x of[-.63,.63])box(.035,2.15,.37,M.dark,x,1.1,0,shelf);for(let y of[.12,.76,1.42,2.08])box(1.3,.035,.4,M.wood,0,y,0,shelf);obstacle(-3.7,-1.1,.5,1.35);
