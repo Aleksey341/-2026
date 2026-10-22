@@ -53,24 +53,21 @@ export async function makeFuture(scene,config){
  function label(text,w,h){const c=document.createElement('canvas');c.width=768;c.height=192;const ctx=c.getContext('2d');ctx.fillStyle='#7700ff';ctx.fillRect(0,0,768,192);ctx.fillStyle='white';ctx.font='bold 66px Arial';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,384,96);const t=new T.CanvasTexture(c);t.colorSpace=T.SRGBColorSpace;const m=new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshBasicMaterial({map:t,side:T.DoubleSide,transparent:true}));m.renderOrder=9;return m;}
  // Future room portal: one luminous circular rim with a stationary inscription.
  const floorPad=new T.Group();floorPad.name='future-floor-pad';floorPad.position.set(0,.02,0);group.add(floorPad);
- const padWell=new T.Mesh(new T.CylinderGeometry(1.52,1.58,.07,64),new T.MeshStandardMaterial({color:'#141722',roughness:.72,metalness:.35}));padWell.position.y=-.02;floorPad.add(padWell);
- const padFaceMat=new T.MeshStandardMaterial({color:'#243049',emissive:'#243a6a',emissiveIntensity:.45,roughness:.38,metalness:.55});
- const padFace=new T.Mesh(new T.CylinderGeometry(1.22,1.24,.045,64),padFaceMat);padFace.position.y=.01;floorPad.add(padFace);
+ const padFaceMat=new T.MeshStandardMaterial({color:'#243049',emissive:'#243a6a',emissiveIntensity:.30,roughness:.6,metalness:.2});
+ const padFace=new T.Mesh(new T.CylinderGeometry(1.32,1.32,.025,96),padFaceMat);padFace.position.y=.006;floorPad.add(padFace);
  const padNeonMat=new T.MeshStandardMaterial({color:'#9eb6ff',emissive:'#6f8cff',emissiveIntensity:2.4,roughness:.22,metalness:.55});
- const padNeon=new T.Mesh(new T.TorusGeometry(1.34,.055,14,80),padNeonMat);padNeon.rotation.x=Math.PI/2;padNeon.position.y=.04;floorPad.add(padNeon);
- const padGlow=new T.Mesh(new T.RingGeometry(1.25,1.44,80),new T.MeshBasicMaterial({color:'#7ea0ff',transparent:true,opacity:.35,side:T.DoubleSide,depthWrite:false,blending:T.AdditiveBlending}));
- padGlow.rotation.x=-Math.PI/2;padGlow.position.y=.045;padGlow.renderOrder=7;floorPad.add(padGlow);
+ const padNeon=new T.Mesh(new T.TorusGeometry(1.34,.045,14,96),padNeonMat);padNeon.rotation.x=Math.PI/2;padNeon.position.y=.04;floorPad.add(padNeon);
  function makeRimTextTexture(phrase){
   const size=1024,c=document.createElement('canvas');c.width=c.height=size;const ctx=c.getContext('2d');
   ctx.clearRect(0,0,size,size);const cx=size/2,cy=size/2,radius=size*(1.34/1.55)/2;
-  const str=phrase;ctx.font='800 46px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
+  const str=phrase;ctx.font='700 40px Arial';ctx.textAlign='center';ctx.textBaseline='middle';
   const chars=[...str],space=7;let total=0;const widths=chars.map(ch=>{const w=ctx.measureText(ch).width+space;total+=w;return w;});
-  let angle=-total/(2*radius);
+  let angle=-Math.PI/2-total/(2*radius);
   for(let i=0;i<chars.length;i++){const w=widths[i],a=angle+w/(2*radius);ctx.save();ctx.translate(cx+Math.cos(a)*radius,cy+Math.sin(a)*radius);ctx.rotate(a+Math.PI/2);ctx.lineWidth=8;ctx.strokeStyle='rgba(20,16,48,.85)';ctx.strokeText(chars[i],0,0);ctx.fillStyle='#f4f7ff';ctx.fillText(chars[i],0,0);ctx.restore();angle+=w/radius;}
   const tex=new T.CanvasTexture(c);tex.colorSpace=T.SRGBColorSpace;tex.anisotropy=4;return tex;
  }
- const padTextMat=new T.MeshBasicMaterial({map:makeRimTextTexture('Будущее здесь'),transparent:true,opacity:1,depthWrite:false,side:T.DoubleSide});
- const padText=new T.Mesh(new T.RingGeometry(1.23,1.55,96),padTextMat);padText.rotation.x=-Math.PI/2;padText.position.y=.055;padText.renderOrder=8;floorPad.add(padText);
+ const padTextMat=new T.MeshBasicMaterial({map:makeRimTextTexture('Будущее здесь'),transparent:true,opacity:1,depthTest:false,depthWrite:false,side:T.DoubleSide});
+ const padText=new T.Mesh(new T.RingGeometry(1.20,1.55,128),padTextMat);padText.rotation.x=-Math.PI/2;padText.position.y=.095;padText.renderOrder=8;floorPad.add(padText);
  const inspectButton=label('Рассмотреть',1.8,.45);inspectButton.position.set(0,-H/2+.26,.08);inspectButton.visible=false;panel.add(inspectButton);
  let activation=-1,ready=false;
  function activate(){if(activation<0)activation=0;}
@@ -83,11 +80,11 @@ export async function makeFuture(scene,config){
  const present=activation<0?0:T.MathUtils.smoothstep(activation,0,1.4);
  floorPanels.children.forEach((o,i)=>o.material.color.copy(floorBaseColors[i]).lerp(floorDarkColor,present));
  floorRails.forEach((o,i)=>o.material.color.copy(floorRailBase[i]).lerp(floorDarkColor,present*.9));
- if(activation<0){const pulse=.55+.45*Math.sin(hoverTime*3.1);padNeonMat.emissiveIntensity=1.9+pulse*.7;padGlow.material.opacity=.28+pulse*.14;padFaceMat.emissiveIntensity=.35+pulse*.15;padTextMat.opacity=1;}
- else{padNeonMat.emissiveIntensity=.35;padGlow.material.opacity=.08;padFaceMat.emissiveIntensity=.12;padTextMat.opacity=.12;}
+ if(activation<0){const pulse=.55+.45*Math.sin(hoverTime*3.1);padNeonMat.emissiveIntensity=1.9+pulse*.7;padFaceMat.emissiveIntensity=.35+pulse*.15;padTextMat.opacity=1;}
+ else{padNeonMat.emissiveIntensity=.35;padFaceMat.emissiveIntensity=.12;padTextMat.opacity=.12;}
  drones.forEach((d,i)=>{const t=hoverTime*.09+i*Math.PI*2/5;const x=Math.cos(t)*(W/2+3.5),z=Math.sin(t)*(D/2+4);d.position.set(x,2.4+Math.sin(hoverTime*.5+i)*.6+i*.25,z);d.rotation.y=Math.atan2(-Math.sin(t),Math.cos(t));d.rotation.z=Math.sin(hoverTime+i)*.035;d.userData.props.forEach(p=>p.rotation.y+=dt*20);});
  const local=group.worldToLocal(camera.position.clone());
  panels.forEach(p=>{const near=local.distanceTo(p.position)<2;const clearOp=near?.025:.085;const tintOp=near?.38:.58;p.material.opacity=T.MathUtils.lerp(clearOp,tintOp,present);p.material.color.copy(glassClear).lerp(glassTint,present);});}
- function reset(){activation=-1;ready=false;shade.material.opacity=0;display.material.opacity=0;inspectButton.visible=false;hoverTime=0;liftRetracted=false;liftGlass.visible=false;liftAnchor.position.y=0;liftAnchor.visible=true;floorPanels.children.forEach((o,i)=>o.material.color.copy(floorBaseColors[i]));floorRails.forEach((o,i)=>o.material.color.copy(floorRailBase[i]));panels.forEach(p=>{p.material.color.copy(glassClear);p.material.opacity=.085;});padNeonMat.emissiveIntensity=2.4;padGlow.material.opacity=.35;padFaceMat.emissiveIntensity=.45;padTextMat.opacity=1;}
+ function reset(){activation=-1;ready=false;shade.material.opacity=0;display.material.opacity=0;inspectButton.visible=false;hoverTime=0;liftRetracted=false;liftGlass.visible=false;liftAnchor.position.y=0;liftAnchor.visible=true;floorPanels.children.forEach((o,i)=>o.material.color.copy(floorBaseColors[i]));floorRails.forEach((o,i)=>o.material.color.copy(floorRailBase[i]));panels.forEach(p=>{p.material.color.copy(glassClear);p.material.opacity=.085;});padNeonMat.emissiveIntensity=2.4;padFaceMat.emissiveIntensity=.45;padTextMat.opacity=1;}
  return {reset,sealLift,liftGlass,liftAnchor,group,panel,floorPad,padNear,inspectButton,activate,inspectNear,get ready(){return ready;},get started(){return activation>=0;},shade,display,drones,hover,blocked,center:group.position.clone(),width:W,depth:D,height:H,radius:R,bottom,top,panels,update,liftBody};
 }
