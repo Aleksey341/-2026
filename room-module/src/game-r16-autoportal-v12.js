@@ -5,7 +5,7 @@ import {themeImage} from 'room-module/src/slide-theme.js';
 import {makeReactorRoom} from 'room-module/src/reactor-room.js';
 import {makeTelevision} from 'room-module/src/television.js';
 import {energyReactor} from 'room-module/src/retro.js';
-import {makeFuture} from './future-r16-v12-fixed-ring.js?v=v12-ringfix-3';
+import {makeFuture} from './future-r16-v12-fixed-ring.js?v=v12-future-here-1';
 import {applyR16Environment} from './graphite-r16.js';
 import * as T from 'room-module/vendor/three.module.js';
 import {AssetSystem, readConfig, assetURL} from 'room-module/src/assets.js';
@@ -197,7 +197,7 @@ function enterRoom(next){
  keys.clear();closeProjects(true);$('reactor-notice').hidden=true;roomIndex=next;world.visible=next===0;hall.group.visible=next===1;future.group.visible=next===2;future.panel.visible=true;assets.selectCharacter(next===2?'future':'base');sun.position.set(next===2?future.center.x+7:7,7,1);sun.target.position.set(next===2?future.center.x:-2,0,-2);headset.visible=false;$('future-controls').hidden=next!==2;
  yaw=0;pitch=.32;dist=3.45;camera.fov=next===1?62:53;camera.updateProjectionMatrix();
  if(next===1){player.position.set(0,0,CONFIG.reactor.centerZ+6.2);player.rotation.y=0;scene.background.set('#26383b');sun.intensity=.45;fill.intensity=.35;}
- if(next===2){player.position.set(future.center.x+3.2,0,future.center.z+1.9);player.rotation.y=Math.PI/2;yaw=.55;pitch=.22;dist=2.65;scene.background.set('#c6d7e8');sun.intensity=2.2;fill.intensity=.8;}
+ if(next===2){future.reset();player.position.set(future.center.x+3.2,0,future.center.z+1.9);player.rotation.y=Math.PI/2;yaw=.55;pitch=.22;dist=2.65;scene.background.set('#c6d7e8');sun.intensity=2.2;fill.intensity=.8;}
  camera.position.copy(player.position).add(next===2?new T.Vector3(Math.sin(yaw)*Math.cos(pitch)*dist,1.2+Math.sin(pitch)*dist,Math.cos(yaw)*Math.cos(pitch)*dist):new T.Vector3(0,2.3,3.2));if(next===1){camera.position.x=T.MathUtils.clamp(camera.position.x,hall.bounds.minX+.15,hall.bounds.maxX-.15);camera.position.z=T.MathUtils.clamp(camera.position.z,hall.bounds.minZ+.15,hall.bounds.maxZ-.15);}camera.lookAt(player.position.clone().add(new T.Vector3(0,1.2,0)));updateChapter();
 }
 function updateChapter(){
@@ -205,12 +205,16 @@ function updateChapter(){
  $('room-label').textContent=['ПЕРЕГОВОРНАЯ','ЗАЛ АКТИВАЦИИ','ОФИС БУДУЩЕГО'][roomIndex];$('room-number').textContent=['01','02','03'][roomIndex];
  if(roomIndex===0){mission.textContent='Встаньте на прозрачный круг у выхода в реакторную.';badge.textContent='Переход закрыт';}
  if(roomIndex===1){mission.textContent=hall.reactorFilled?'Реактор заполнен. Следуйте к светящемуся кругу перед лифтом.':'Активировано витрин: '+hall.done.size+' / 4. Выберите витрину и изучите её проекты.';badge.textContent='Витрины: '+hall.done.size+' / 4';}
- if(roomIndex===2){mission.textContent=elevator.active?'Поездка в Офис будущего. Дождитесь открытия дверей и нажмите E для выхода.':future.started?'Подойдите к слайду и нажмите «Рассмотреть».':'Встаньте на круг «Будущее здесь» в центре зала и нажмите E, чтобы запустить презентацию.';badge.textContent='Стеклянный павильон · 12 × 9 м';}
+ if(roomIndex===2){
+  const st=future.state;
+  mission.textContent=elevator.active?'Поездка в Офис будущего. Дождитесь открытия дверей и нажмите E для выхода.':st==='ACTIVATING'?'Запуск презентации…':st==='PRESENTATION'?'Презентация открыта.':st==='RESTORING'?'Восстановление зала…':st==='WAIT_FOR_EXIT'?'Выйдите за пределы круга, чтобы запустить снова.':'Встаньте на синий круг «БУДУЩЕЕ ЗДЕСЬ» — презентация запустится автоматически.';
+  badge.textContent='Стеклянный павильон · 12 × 9 м';
+ }
 }
 function act(){
- if(paused||uiOpen)return;if(elevator.awaitingExit){keys.clear();elevator.exit();return;}if(elevator.active)return;
+ if(paused||uiOpen||future.controlsLocked)return;if(elevator.awaitingExit){keys.clear();elevator.exit();return;}if(elevator.active)return;
  if(roomIndex===1){if(elevator.state==='ELEVATOR_READY'&&elevator.near(player.position)){keys.clear();elevator.start();updateChapter();return;}const i=hall.nearest(player.position);if(i!==null)openProjects(i);return;}
- if(roomIndex===2){if(future.padNear(player.position)){future.activate();updateChapter();return;}if(future.inspectNear(player.position))showFinal();return;}
+ if(roomIndex===2)return;
  if(roomIndex!==0)return;
  // The portal activates by stepping onto the circle, without pressing E.
 
@@ -222,7 +226,15 @@ const progress=createGameProgress({hall,elevator,future});
 const showcaseUI=createShowcaseUI({hall,player,camera,T,assetURL,themeImage,updateChapter,setOpen:v=>{uiOpen=v;keys.clear();}});
 function openProjects(i){selectedPod=i;showcaseUI.open(i);}
 function showProject(j){showcaseUI.show(j);}
-function closeProjects(immediate=false){if(!immediate&&$('project-modal').classList.contains('final-view')&&progress.events.finalOpened&&document.querySelector('#project-content img')?.naturalWidth>0)progress.events.finalDone=true;showcaseUI.close(immediate);selectedPod=null;keys.clear();}
+function closeProjects(immediate=false){
+ const wasFinal=$('project-modal').classList.contains('final-view');
+ if(!immediate&&wasFinal&&progress.events.finalOpened&&document.querySelector('#project-content img')?.naturalWidth>0)progress.events.finalDone=true;
+ showcaseUI.close(immediate);selectedPod=null;keys.clear();
+ if(wasFinal){
+  if(immediate)future.reset();
+  else{future.onPresentationClosed();updateChapter();}
+ }
+}
 action.onclick=act;
 function reset(){velocityX=0;velocityZ=0;autoPortal=null;portalFade.style.opacity='0';portalPad.material.opacity=.18;portalRing.material.opacity=.55;door.visible=true;if(door.userData.portalOriginal){door.material=door.userData.portalOriginal;delete door.userData.portalOriginal;}progress.reset();elevator.reset();future.reset();$('reactor-notice').hidden=true;sun.position.set(7,7,1);sun.target.position.set(-2,0,-2);assets.selectCharacter('base');headset.visible=false;$('future-controls').hidden=true;camera.fov=53;camera.updateProjectionMatrix();closeProjects(true);hall.reset();tv.reset();roomIndex=0;world.visible=true;hall.group.visible=false;future.group.visible=false;sun.intensity=3;fill.intensity=.65;scene.background.set('#c6d7e8');state='worn';player.position.fromArray(spawn);player.rotation.y=0;yaw=0;pitch=.32;dist=3.45;camera.position.set(.9,2.25,2.8);reveal.visible=true;door.position.z=doorZ;badge.textContent='Проход открыт';mission.textContent='Встаньте на прозрачный круг у выхода в реакторную.';$('flash').style.opacity=0;progress.reset();updateChapter();}
 $('reset').onclick=()=>{reset();paused=false;$('settings').hidden=true};$('full').onclick=()=>{if(document.fullscreenElement)document.exitFullscreen();else document.documentElement.requestFullscreen().catch(()=>{})};$('menu').onclick=()=>{paused=!paused;$('settings').hidden=!paused;keys.clear()};$('resume').onclick=()=>{paused=false;$('settings').hidden=true};
@@ -231,7 +243,7 @@ let dragDistance=0;const canvas=$('game');canvas.onpointerdown=e=>{drag=true;las
 const raycaster=new T.Raycaster();canvas.addEventListener('click',e=>{
  if(paused||uiOpen||elevator.active||dragDistance>5)return;
  scene.updateMatrixWorld(true);raycaster.setFromCamera(new T.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2),camera);
- if(roomIndex===2){if(raycaster.intersectObject(future.floorPad,true).length){future.activate();updateChapter();return;}}
+ if(roomIndex===2){if(raycaster.intersectObject(future.floorPad,true).length&&future.state==='IDLE'){future.activate();updateChapter();return;}}
  if(roomIndex===0){const ph=raycaster.intersectObjects(posterHits);if(ph.length){const p=ph[0].object;p.userData.future=!p.userData.future;p.material.map=p.userData.future?robotPoster:p.userData.original;return;}const hits=raycaster.intersectObject(world,true).filter(h=>{for(let p=h.object;p&&p!==world;p=p.parent)if(!p.visible)return false;return true;});const hit=hits[0];if(hit&&(hit.object===tv.hit||hit.object===tv.button)){tv.toggle();return;}}
  if(roomIndex===1){const i=hall.nearest(player.position);if(i!==null&&raycaster.intersectObject(hall.pods[i].g,true).length)openProjects(i);}
 });
@@ -241,7 +253,7 @@ let last=performance.now(),walk=0;const target=new T.Vector3(),desired=new T.Vec
 // V8: smooth acceleration and deceleration, with speed capped at the V7 value.
 let velocityX=0,velocityZ=0;const acceleration=8.5,deceleration=12.0;
 function frame(now){requestAnimationFrame(frame);const dt=paused?0:T.MathUtils.clamp((now-last)/1000,0,.04);last=now;let moving=false,dx=0,dz=0;
-const canMove=!paused&&!uiOpen&&!elevator.active&&!autoPortal&&state!=='wearing';
+const canMove=!paused&&!uiOpen&&!elevator.active&&!autoPortal&&state!=='wearing'&&!(roomIndex===2&&future.controlsLocked);
 if(canMove){
  const forward=Number(keys.has('KeyW')||keys.has('ArrowUp'))-Number(keys.has('KeyS')||keys.has('ArrowDown'));
  const right=Number(keys.has('KeyD')||keys.has('ArrowRight'))-Number(keys.has('KeyA')||keys.has('ArrowLeft'));
@@ -297,7 +309,16 @@ if(autoPortal&&!paused){
 if(CONFIG.character.useProcedural){walk=T.MathUtils.damp(walk,moving?1:0,9,dt);phase+=dt*8;body.position.y=Math.abs(Math.sin(phase))*.016*walk+Math.sin(now*.0016)*.003;legs[0].rotation.x=Math.sin(phase)*.36*walk;legs[1].rotation.x=-Math.sin(phase)*.36*walk;arms[0].rotation.x=-Math.sin(phase)*.29*walk;arms[1].rotation.x=Math.sin(phase)*.29*walk;}
 
 // Portal remains closed until the player enters the activation circle.
- door.position.z=doorZ;let actionText='';if(roomIndex===0){tv.update(dt);}else if(roomIndex===1){if(elevator.state==='ELEVATOR_READY'&&elevator.near(player.position))actionText='';else{const i=hall.nearest(player.position);if(i!==null)actionText='Рассмотреть: '+hall.themes[i].name;}}else if(roomIndex===2){if(future.padNear(player.position))actionText='Будущее здесь';else if(future.inspectNear(player.position))actionText='Рассмотреть';}if(elevator.awaitingExit)actionText='Выйти в Офис будущего';action.hidden=paused||uiOpen||(elevator.active&&!elevator.awaitingExit)||!actionText;action.innerHTML='<kbd>E</kbd> '+actionText;$('step1').parentElement.hidden=true;
+ door.position.z=doorZ;let actionText='';if(roomIndex===0){tv.update(dt);}else if(roomIndex===1){if(elevator.state==='ELEVATOR_READY'&&elevator.near(player.position))actionText='';else{const i=hall.nearest(player.position);if(i!==null)actionText='Рассмотреть: '+hall.themes[i].name;}}else if(roomIndex===2){actionText='';}if(elevator.awaitingExit)actionText='Выйти в Офис будущего';action.hidden=paused||uiOpen||(elevator.active&&!elevator.awaitingExit)||!actionText;action.innerHTML='<kbd>E</kbd> '+actionText;$('step1').parentElement.hidden=true;
+ // Future pad: auto-activate on step-in; open fullscreen presentation after descend animation.
+ if(roomIndex===2&&!paused&&!elevator.active){
+  future.notifyPlayerPosition(player.position);
+  if(future.padNear(player.position)){future.activate();updateChapter();}
+  if(future.takePresentationCue())showFinal();
+  const dim=future.dimFactor;
+  sun.intensity=T.MathUtils.lerp(2.2,.28,dim);
+  fill.intensity=T.MathUtils.lerp(.8,.12,dim);
+ }
 // Orbit follows the heroine; camera stays within the finished room.
 if(roomIndex===1){const before=String(hall.reactorFilled)+hall.done.size;hall.update(dt,now/1000,player.position);if(String(hall.reactorFilled)+hall.done.size!==before)updateChapter();}
 const elevatorBefore=elevator.state;elevator.update(dt);if(elevator.state!==elevatorBefore)updateChapter();
@@ -350,7 +371,19 @@ $('welcome-start').onclick=()=>{
 
 if(location.hash==="#future"){enterRoom(2);setView("inside");}
 
-function showFinal(){progress.events.finalOpened=true;uiOpen=true;keys.clear();selectedPod=null;$('project-modal').hidden=false;$('project-modal').classList.remove('list-view');$('project-modal').classList.add('slide-view','final-view');$('project-title').textContent='ИИ-команда';$('project-content').innerHTML='<img class="project-slide" src="'+assetURL(CONFIG.future.finalSlide)+'" alt="ИИ-команда">';$('project-nav').innerHTML='';$('project-back').hidden=false;$('project-back').textContent='↶';$('project-back').setAttribute('aria-label','Вернуться в комнату');$('project-back').onclick=()=>closeProjects();}
+function showFinal(){
+ progress.events.finalOpened=true;uiOpen=true;keys.clear();selectedPod=null;
+ const modal=$('project-modal');
+ modal.hidden=false;modal.classList.remove('list-view');modal.classList.add('slide-view','final-view');
+ $('project-title').textContent='ИИ-команда';
+ $('project-content').innerHTML='<img class="project-slide" src="'+assetURL(CONFIG.future.finalSlide)+'" alt="ИИ-команда">';
+ $('project-nav').innerHTML='';
+ const back=$('project-back');
+ back.hidden=false;back.textContent='✕ Закрыть презентацию';back.setAttribute('aria-label','Закрыть презентацию');
+ back.onclick=()=>closeProjects();
+ const closeBtn=$('project-close');
+ if(closeBtn){closeBtn.hidden=false;closeBtn.textContent='✕ Закрыть презентацию';closeBtn.setAttribute('aria-label','Закрыть презентацию');closeBtn.onclick=()=>closeProjects();}
+}
 globalThis.gameTest={progress,elevator,scene,camera,player,hall,future,tv,assets,enterRoom,openProjects,showProject,closeProjects,showFinal,posterHits};
 
 $('preview-hall').onclick=()=>{paused=false;$('settings').hidden=true;enterRoom(1);};
