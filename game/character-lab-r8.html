@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>БОРУП R8 · Проверка персонажа</title>
+<style>body{margin:0;background:#171e2a;color:#f1f4fa;font:15px system-ui}aside{position:fixed;left:16px;top:16px;width:310px;max-height:90vh;overflow:auto;padding:18px;border-radius:12px;background:#202c40eF;z-index:2}h1{font-size:19px;margin-top:0}button,input,select{margin:4px 0;padding:8px;max-width:100%;box-sizing:border-box}button{background:#d6e1f8;border:0;border-radius:6px;cursor:pointer}label{display:block;margin-top:10px}pre{white-space:pre-wrap;font:12px monospace}#status{color:#ffd68a}canvas{display:block}p{line-height:1.45}</style>
+<aside><h1>БОРУП R8 · Проверка персонажа</h1><p>Откройте настоящий GLB. Этот просмотрщик работает локально, модель в игру не подменяет.</p>
+<label>Модель <input id="model" type="file" accept=".glb"></label>
+<div><button data-view="front">Спереди</button> <button data-view="left">Сбоку</button> <button data-view="back">Сзади</button> <button data-view="face">Лицо</button></div>
+<label>Встроенный клип <select id="clips" disabled><option>Модель не загружена</option></select></label>
+<button id="play" disabled>Проиграть клип</button><button id="rest" disabled>Поза покоя</button>
+<label>Скорость исходного Walk, м/с <input id="walk-speed" type="number" min="0.1" step="0.1" value="1.4"></label>
+<button id="enable" disabled>Включить тест управления</button>
+<p>Для теста нужны скелет и все девять подготовленных клипов. WASD / стрелки: ходьба; Q / R: поворот на месте; E: Interact. Мышь: орбита, колесо: дистанция. Введённую скорость Walk требуется измерить на реальной анимации.</p>
+<div id="gestures"><button data-gesture="reach" disabled>Reach</button><button data-gesture="wear" disabled>WearVR</button></div>
+<p id="status" role="status">Ожидается GLB. Естественность движения ещё не проверена.</p><pre id="info"></pre></aside>
+<script type="module" src="src/character-lab-r8.js"></script></html>
